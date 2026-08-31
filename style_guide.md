@@ -1,0 +1,1 @@
+vendor/mngr/style_guide.md

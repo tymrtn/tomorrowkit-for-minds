@@ -1,33 +1,117 @@
 [project]
-name = "tomorrowkit"
+name = "tomorrowkit-mind"
 version = "0.1.0"
-description = "Tomorrowkit orientation and provisional patent matter workspace"
-readme = "README.md"
-license = { file = "LICENSE.md" }
+description = "Bootable Minds inspiration for a private provisional-patent workspace"
 requires-python = ">=3.11"
 dependencies = [
-    "flask>=3.0",
-    "flask-sock>=0.7",
+    "telegram-bot",
+    "bootstrap",
+    "cloudflare-tunnel",
+    "app-watcher",
+    "web-server",
+    "tomorrowkit",
+    "runtime-backup",
+    "host-backup",
+    "tk-command-parsing",
     "imbue-common",
-    "loguru>=0.7",
-    "pydantic>=2.0",
-    "werkzeug>=3.0",
+    "tomlkit>=0.12",
+    "playwright==1.58.0",
+    "litellm>=1.88.1",
 ]
 
 [dependency-groups]
 dev = [
-    "import-linter>=2.0",
-    "inline-snapshot>=0.20",
-    "pyright>=1.1.400",
     "pytest>=8.0",
+    "pytest-timeout>=2.0",
+    "ruff>=0.4",
+    "pyright>=1.1",
+    "inline-snapshot>=0.31",
+    "import-linter>=2.0",
+    "tomlkit>=0.12",
+    "pyyaml>=6",
+    # used by test_mngr_template_stacking.py to verify .mngr/settings.toml
+    # composes correctly with vendor/mngr's apply_create_template logic
+    "imbue-mngr",
+    # imbue-mngr-claude isn't imported by any /mngr/code/ python -- it's here so
+    # `uv sync --all-packages` registers it in /mngr/code/.venv. Without it,
+    # `uv run mngr ...` (e.g. from the bootstrap window) resolves to
+    # /mngr/code/.venv/bin/mngr but pluggy can't discover the claude plugin via
+    # entry points, so settings.toml fields like `use_env_config_dir`,
+    # `auto_allow_permissions`, etc. fail to parse as "Unknown fields".
+    # Keeping the venv's mngr in lockstep with the tool-installed mngr
+    # (which has --with-editable mngr_claude on the system_interface tool
+    # install) avoids a cwd-dependent divergence.
+    "imbue-mngr-claude",
+    # Shared validator that checks mngr CLI argvs against the live mngr command
+    # tree; used by the per-feature contract tests (bootstrap's manager_test,
+    # telegram_bot's bot_test, launch-task's create_worker_test).
+    "mngr-cli-contract",
 ]
 
-[project.scripts]
-tomorrowkit = "tomorrowkit.runner:main"
+[tool.uv]
+package = false
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+[tool.uv.workspace]
+members = ["libs/telegram_bot", "libs/bootstrap", "libs/cloudflare_tunnel", "libs/app_watcher", "libs/web_server", "libs/tomorrowkit", "libs/runtime_backup", "libs/host_backup", "libs/mngr_cli_contract", "libs/tk_command_parsing", "apps/system_interface"]
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/tomorrowkit"]
+[tool.uv.sources]
+telegram-bot = { workspace = true }
+bootstrap = { workspace = true }
+cloudflare-tunnel = { workspace = true }
+app-watcher = { workspace = true }
+web-server = { workspace = true }
+tomorrowkit = { workspace = true }
+runtime-backup = { workspace = true }
+host-backup = { workspace = true }
+mngr-cli-contract = { workspace = true }
+tk-command-parsing = { workspace = true }
+imbue-common = { path = "vendor/mngr/libs/imbue_common", editable = true }
+imbue-mngr = { path = "vendor/mngr/libs/mngr", editable = true }
+imbue-mngr-claude = { path = "vendor/mngr/libs/mngr_claude", editable = true }
+resource-guards = { path = "vendor/mngr/libs/resource_guards", editable = true }
+concurrency-group = { path = "vendor/mngr/libs/concurrency_group", editable = true }
+
+[tool.pytest.ini_options]
+testpaths = ["."]
+# pytest's default norecursedirs excludes all dot-directories (the ".*" pattern),
+# which would skip the Python tests under .agents/shared/scripts (e.g.
+# test_skill_mngr_references.py). Override it to keep the standard exclusions but
+# enumerate the dot-directories to skip explicitly, so .agents is still recursed into.
+norecursedirs = [
+    "*.egg",
+    ".git",
+    ".claude",
+    ".github",
+    ".mngr",
+    ".pytest_cache",
+    ".reviewer",
+    ".ruff_cache",
+    ".venv",
+    "_darcs",
+    "build",
+    "CVS",
+    "dist",
+    "node_modules",
+    "venv",
+    "{arch}",
+]
+timeout_func_only = true
+addopts = [
+    "--timeout=10",
+    "--ignore=vendor/mngr",
+    "--ignore=vendor/tk",
+    # apps/system_interface has its own pytest config (coverage, slow-test reporting,
+    # ratchets) that conflicts with the root config; it is run from inside its own dir.
+    "--ignore=apps/system_interface",
+]
+
+[tool.ruff]
+target-version = "py311"
+exclude = ["vendor/mngr", "vendor/tk", "apps/system_interface"]
+
+[tool.ruff.lint]
+select = ["F", "I", "UP006", "UP007"]
+
+[tool.pyright]
+pythonVersion = "3.11"
+exclude = ["vendor/mngr", "vendor/tk", "apps/system_interface"]

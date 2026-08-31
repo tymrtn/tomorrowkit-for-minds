@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<base href="../">
+<title>{{ matter.title }} — Tomorrowkit</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/styles.css">
+</head>
+<body data-matter-id="{{ matter.matter_id }}">
+<div class="matter-layout">
+
+  <aside class="side">
+    <div class="sheet">
+      <div class="side-head">
+        <span class="stamp small" id="side-stamp"></span>
+        <div class="matter-title" id="side-title"></div>
+        <div class="mono" style="font-size:11px; color: var(--ink-soft);">MATTER <span id="side-matter-no"></span></div>
+      </div>
+      <ul class="side-nav" id="side-nav">
+        <li><button data-pane="home" class="active">Matter home</button></li>
+        <li><button data-pane="brief">Invention brief</button></li>
+        <li><button data-pane="harvest">Harvesting room <span class="count" id="count-harvest"></span></button></li>
+        <li><button data-pane="map">Invention map <span class="count" id="count-map"></span></button></li>
+        <li><button data-pane="library">Reference library <span class="count" id="count-library"></span></button></li>
+        <li><button data-pane="ledger">Decision ledger <span class="count" id="count-ledger"></span></button></li>
+        <li><button data-pane="scorecard">Scorecard</button></li>
+        <li><button data-pane="export">Export &amp; handoff</button></li>
+      </ul>
+      <div class="side-foot">
+        <div class="save-status" id="save-status">Loaded</div>
+        <a href="./">&larr; All matters &amp; orientation</a>
+        <a href="matter/{{ matter.matter_id }}/raw" target="_blank" rel="noopener">View raw record</a>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <!-- ============ MATTER HOME ============ -->
+    <section class="pane active" id="pane-home">
+      <div class="pane-head">
+        <h2>Matter home</h2>
+        <p class="pane-sub">Where this invention stands right now. Keep it honest — visible uncertainty is a feature of a good record.</p>
+      </div>
+
+      <div class="card">
+        <label class="field" for="f-title">Working title</label>
+        <input type="text" id="f-title" maxlength="200">
+        <div class="two-col">
+          <div>
+            <label class="field" for="f-stage">Current stage</label>
+            <select id="f-stage">
+              <option value="EARLY_IDEA">Early idea</option>
+              <option value="DRAFT_READY">Draft-ready</option>
+              <option value="FILED_PROVISIONAL">Filed provisional</option>
+              <option value="EXISTING_APPLICATION">Existing application</option>
+            </select>
+          </div>
+          <div>
+            <label class="field" for="f-goal">Immediate goal</label>
+            <input type="text" id="f-goal">
+          </div>
+          <div>
+            <label class="field" for="f-theme">Workspace accent</label>
+            <select id="f-theme">
+              <option value="">Drafting blue (default)</option>
+              <option value="field-green">Field green</option>
+              <option value="kiln-amber">Kiln amber</option>
+              <option value="ink-violet">Ink violet</option>
+              <option value="harbor-teal">Harbor teal</option>
+            </select>
+          </div>
+        </div>
+        <label class="field" for="f-problem">The problem, and the approach</label>
+        <textarea id="f-problem"></textarea>
+      </div>
+
+      <div class="card">
+        <h3>Standing of the record</h3>
+        <div class="two-col">
+          <div>
+            <label class="field" for="f-known">What is known</label>
+            <p class="hint">What's established and well-described so far.</p>
+            <textarea id="f-known"></textarea>
+          </div>
+          <div>
+            <label class="field" for="f-uncertain">What remains uncertain</label>
+            <p class="hint">Open questions, unverified assumptions, missing evidence.</p>
+            <textarea id="f-uncertain"></textarea>
+          </div>
+        </div>
+        <label class="field" for="f-next">Next recommended action</label>
+        <input type="text" id="f-next" placeholder="e.g. Run the prior-art prospecting session in the harvesting room">
+      </div>
+
+      <div class="card">
+        <h3>Important dates</h3>
+        <p class="hint">Public disclosures, filings, demos, sales — the dates that shape your options.</p>
+        <div class="row-list" id="dates-list"></div>
+        <div style="margin-top: 12px;"><button class="btn tiny" id="add-date">Add a date</button></div>
+      </div>
+    </section>
+
+    <!-- ============ INVENTION BRIEF ============ -->
+    <section class="pane" id="pane-brief">
+      <div class="pane-head">
+        <h2>Invention brief</h2>
+        <p class="pane-sub">The evolving account of the invention, kept in your own language. Resist the urge to sound like a patent — clarity now, polish later.</p>
+      </div>
+
+      <div class="card">
+        <label class="field" for="b-problem">Problem</label>
+        <p class="hint">What's broken, for whom, and why existing answers fall short.</p>
+        <textarea id="b-problem" rows="5"></textarea>
+
+        <label class="field" for="b-mechanism">Proposed mechanism</label>
+        <p class="hint">How it actually works, step by step. The heart of the disclosure.</p>
+        <textarea id="b-mechanism" rows="8"></textarea>
+
+        <label class="field" for="b-result">Intended result</label>
+        <p class="hint">What the invention achieves when it works — measurable where possible.</p>
+        <textarea id="b-result" rows="4"></textarea>
+
+        <label class="field" for="b-alternatives">Alternatives and variations</label>
+        <p class="hint">Every other way to build it that you'd rather competitors couldn't use freely.</p>
+        <textarea id="b-alternatives" rows="6"></textarea>
+
+        <label class="field" for="b-questions">Open questions</label>
+        <p class="hint">What's undecided or unknown. Keeping these visible is how they get answered.</p>
+        <textarea id="b-questions" rows="4"></textarea>
+      </div>
+    </section>
+
+    <!-- ============ HARVESTING ROOM ============ -->
+    <section class="pane" id="pane-harvest">
+      <div class="pane-head">
+        <h2>Harvesting room</h2>
+        <p class="pane-sub">
+          These checkpoints are shared with your Mind's agent. Continue the conversation
+          in Minds; the agent reads this matter and updates the brief, map, library, and
+          decisions as you work. No prompt shuttling is required.
+        </p>
+      </div>
+      <div id="harvest-list"></div>
+    </section>
+
+    <!-- ============ INVENTION MAP ============ -->
+    <section class="pane" id="pane-map">
+      <div class="pane-head">
+        <h2>Invention map</h2>
+        <p class="pane-sub">A thinking canvas for the system: components, flows, alternatives, and open questions. Not a formal patent drawing — those come later, from professionals.</p>
+      </div>
+
+      <div class="map-toolbar">
+        <select id="map-kind">
+          <option value="COMPONENT">Component</option>
+          <option value="ACTOR">Actor</option>
+          <option value="INPUT">Input</option>
+          <option value="OUTPUT">Output</option>
+          <option value="STEP">Step</option>
+          <option value="ALTERNATIVE">Alternative</option>
+          <option value="QUESTION">Question</option>
+          <option value="ASSUMPTION">Assumption</option>
+          <option value="EVIDENCE">Evidence</option>
+        </select>
+        <button class="btn tiny" id="map-add">Add element</button>
+        <button class="btn tiny" id="map-connect">Draw connection</button>
+        <button class="btn tiny" id="map-delete" disabled>Delete selected</button>
+        <span class="map-hint" id="map-status"></span>
+      </div>
+
+      <div class="map-frame" id="map-frame">
+        <svg id="map-svg" width="1600" height="1200" role="img" aria-label="Invention map canvas">
+          <defs>
+            <marker id="tk-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 1 L 9 5 L 0 9 z" fill="#5d6d75"></path>
+            </marker>
+          </defs>
+          <g id="map-edges"></g>
+          <g id="map-nodes"></g>
+        </svg>
+      </div>
+      <p class="map-hint">Drag elements to arrange them. Click one to edit it below. “Draw connection” links two elements in the order you click them.</p>
+
+      <div class="card node-editor" id="node-editor" hidden>
+        <h3 id="node-editor-title">Element</h3>
+        <div class="two-col">
+          <div>
+            <label class="field" for="ne-label">Label</label>
+            <input type="text" id="ne-label" maxlength="120">
+          </div>
+          <div>
+            <label class="field" for="ne-kind">Kind</label>
+            <select id="ne-kind">
+              <option value="COMPONENT">Component</option>
+              <option value="ACTOR">Actor</option>
+              <option value="INPUT">Input</option>
+              <option value="OUTPUT">Output</option>
+              <option value="STEP">Step</option>
+              <option value="ALTERNATIVE">Alternative</option>
+              <option value="QUESTION">Question</option>
+              <option value="ASSUMPTION">Assumption</option>
+              <option value="EVIDENCE">Evidence</option>
+            </select>
+          </div>
+        </div>
+        <label class="field" for="ne-note">Note</label>
+        <textarea id="ne-note" rows="3"></textarea>
+        <label class="field" for="ne-reference">Linked library entry</label>
+        <select id="ne-reference" style="max-width: 100%;"></select>
+      </div>
+
+      <div class="card node-editor" id="edge-editor" hidden>
+        <h3>Connection</h3>
+        <label class="field" for="ee-label">Label</label>
+        <input type="text" id="ee-label" maxlength="80" placeholder="e.g. feeds into, controls, alternative to">
+      </div>
+    </section>
+
+    <!-- ============ REFERENCE LIBRARY ============ -->
+    <section class="pane" id="pane-library">
+      <div class="pane-head">
+        <h2>Reference library</h2>
+        <p class="pane-sub">
+          Every source that shapes this matter: prior patents, papers, products, standards,
+          your own materials, and leads still to be checked. An organized working record —
+          not a filed disclosure statement.
+        </p>
+      </div>
+
+      <div class="list-toolbar">
+        <input type="text" id="lib-filter" placeholder="Filter by title, tag, or note…">
+        <span class="spacer"></span>
+        <button class="btn" id="lib-add">Add an entry</button>
+      </div>
+
+      <div class="card" id="lib-editor" hidden>
+        <h3 id="lib-editor-title">New entry</h3>
+        <div class="two-col">
+          <div>
+            <label class="field" for="le-title">Title</label>
+            <input type="text" id="le-title" maxlength="300">
+          </div>
+          <div>
+            <label class="field" for="le-citation">Citation or link</label>
+            <input type="text" id="le-citation" placeholder="e.g. US 10,123,456 B2 or https://…">
+          </div>
+        </div>
+        <div class="two-col">
+          <div>
+            <label class="field" for="le-source-type">Source type</label>
+            <select id="le-source-type">
+              <option value="PATENT_PUBLICATION">Patent publication</option>
+              <option value="PAPER">Paper</option>
+              <option value="PRODUCT">Product</option>
+              <option value="WEB_PAGE">Web page</option>
+              <option value="STANDARD">Standard</option>
+              <option value="INVENTOR_MATERIAL">Inventor material</option>
+              <option value="RESEARCH_LEAD">Research lead</option>
+            </select>
+          </div>
+          <div>
+            <label class="field" for="le-relationship">Relationship to the matter</label>
+            <select id="le-relationship">
+              <option value="SUPPORTS">Supports</option>
+              <option value="CONTRADICTS">Contradicts</option>
+              <option value="DESIGN_AROUND">Raises a design-around</option>
+              <option value="SEARCH_LEAD">Creates a search lead</option>
+              <option value="NEEDS_VERIFICATION">Needs verification</option>
+            </select>
+          </div>
+        </div>
+        <label class="field" for="le-relevance">Why it matters</label>
+        <p class="hint">One or two plain sentences on how this source bears on your invention.</p>
+        <textarea id="le-relevance" rows="3"></textarea>
+        <div class="two-col">
+          <div>
+            <label class="field" for="le-tags">Tags</label>
+            <input type="text" id="le-tags" placeholder="comma-separated: sealing, coupler, EU market">
+          </div>
+          <div>
+            <label class="field" for="le-date">Source date</label>
+            <input type="text" id="le-date" placeholder="e.g. 2019, or 2021-03-15">
+          </div>
+        </div>
+        <div class="two-col">
+          <div>
+            <label class="field" for="le-provenance">Provenance</label>
+            <input type="text" id="le-provenance" placeholder="e.g. found by my agent during prospecting, 2026-08">
+          </div>
+          <div>
+            <label class="field" for="le-verification">Verification state</label>
+            <select id="le-verification">
+              <option value="LEAD">Lead — not yet reviewed</option>
+              <option value="REVIEWED">Reviewed — read by a human</option>
+              <option value="VERIFIED">Verified — confirmed against the source</option>
+            </select>
+          </div>
+        </div>
+        <div class="intake-actions">
+          <button class="btn primary" id="le-save">Save entry</button>
+          <button class="btn quiet" id="le-cancel">Cancel</button>
+          <span class="form-error" id="le-error" role="alert"></span>
+        </div>
+      </div>
+
+      <div class="row-list" id="lib-list"></div>
+    </section>
+
+    <!-- ============ DECISION LEDGER ============ -->
+    <section class="pane" id="pane-ledger">
+      <div class="pane-head">
+        <h2>Decision ledger</h2>
+        <p class="pane-sub">
+          The important human calls, written down while the reasons are fresh: what terrain
+          matters, which route you chose, what you deferred, and how you handled your AI's
+          suggestions.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>Record a decision</h3>
+        <div class="two-col">
+          <div>
+            <label class="field" for="de-kind">Kind of decision</label>
+            <select id="de-kind">
+              <option value="COMMERCIAL_TERRAIN">Commercial terrain — what matters to protect</option>
+              <option value="EMBODIMENT_CHOICE">Embodiment choice — which route was selected</option>
+              <option value="DEFERRAL">Deferral — held back or postponed</option>
+              <option value="SUGGESTION_DISPOSITION">Suggestion disposition — accepted / changed / rejected</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+          <div>
+            <label class="field" for="de-title">The decision, stated plainly</label>
+            <input type="text" id="de-title" maxlength="300" placeholder="e.g. Lead with the compression-ring embodiment">
+          </div>
+        </div>
+        <label class="field" for="de-rationale">Why</label>
+        <textarea id="de-rationale" rows="3"></textarea>
+        <div class="intake-actions">
+          <button class="btn primary" id="de-save">Record it</button>
+          <span class="form-error" id="de-error" role="alert"></span>
+        </div>
+      </div>
+
+      <div class="row-list" id="ledger-list"></div>
+    </section>
+
+    <!-- ============ SCORECARD ============ -->
+    <section class="pane" id="pane-scorecard">
+      <div class="pane-head">
+        <h2>Scorecard</h2>
+        <p class="pane-sub">
+          Two lenses, kept deliberately separate — a valuable invention can have a weak
+          record, and a thorough record can guard worthless terrain. These are structured
+          self-reviews by you and your agent, not independent council scores and not legal
+          conclusions.
+        </p>
+      </div>
+
+      <div class="card lens" data-lens="invention_value">
+        <span class="lens-code">IVS</span>
+        <h3>Invention Value Score</h3>
+        <p class="lens-question">Does the terrain you've chosen to protect appear worth pursuing?</p>
+        <label class="field">Self-assessed level</label>
+        <div class="level-picker" data-bind="level">
+          <button data-level="NOT_ASSESSED">Not assessed</button>
+          <button data-level="WEAK">Weak</button>
+          <button data-level="DEVELOPING">Developing</button>
+          <button data-level="SOLID">Solid</button>
+        </div>
+        <div class="two-col">
+          <div>
+            <label class="field">Coverage</label>
+            <p class="hint">What the record covers about value: market, differentiation, who would pay.</p>
+            <textarea data-bind="coverage_notes" rows="3"></textarea>
+          </div>
+          <div>
+            <label class="field">Evidence</label>
+            <p class="hint">What actually backs this up — and how strong it is.</p>
+            <textarea data-bind="evidence_notes" rows="3"></textarea>
+          </div>
+        </div>
+        <div class="two-col">
+          <div>
+            <label class="field">Missing prerequisites</label>
+            <textarea data-bind="missing_prerequisites" rows="3"></textarea>
+          </div>
+          <div>
+            <label class="field">Reasoning</label>
+            <textarea data-bind="reasoning" rows="3"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="card lens" data-lens="priority_asset">
+        <span class="lens-code">PAS</span>
+        <h3>Priority Asset Score</h3>
+        <p class="lens-question">Does the provisional record actually capture that terrain?</p>
+        <label class="field">Self-assessed level</label>
+        <div class="level-picker" data-bind="level">
+          <button data-level="NOT_ASSESSED">Not assessed</button>
+          <button data-level="WEAK">Weak</button>
+          <button data-level="DEVELOPING">Developing</button>
+          <button data-level="SOLID">Solid</button>
+        </div>
+        <div class="two-col">
+          <div>
+            <label class="field">Coverage</label>
+            <p class="hint">How completely the brief and map describe the terrain — mechanisms, variations, edge cases.</p>
+            <textarea data-bind="coverage_notes" rows="3"></textarea>
+          </div>
+          <div>
+            <label class="field">Evidence</label>
+            <p class="hint">Verified references, dated materials, harvest depth.</p>
+            <textarea data-bind="evidence_notes" rows="3"></textarea>
+          </div>
+        </div>
+        <div class="two-col">
+          <div>
+            <label class="field">Missing prerequisites</label>
+            <textarea data-bind="missing_prerequisites" rows="3"></textarea>
+          </div>
+          <div>
+            <label class="field">Reasoning</label>
+            <textarea data-bind="reasoning" rows="3"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <p class="footnote" style="margin-top: 20px;">
+        A third lens — PSS, the Prosecution Survival Score — belongs to the later
+        non-provisional stage and is deliberately absent here.
+      </p>
+    </section>
+
+    <!-- ============ EXPORT ============ -->
+    <section class="pane" id="pane-export">
+      <div class="pane-head">
+        <h2>Export &amp; handoff</h2>
+        <p class="pane-sub">The matter is yours. Take it with you, keep a copy, or hand it to counsel — the export contains everything, readable without this app.</p>
+      </div>
+
+      <div class="card">
+        <h3>Portable package</h3>
+        <p style="font-size: 15px; max-width: 66ch;">
+          A zip containing the invention brief, invention map, reference library, decision
+          ledger, scorecard, and harvest notes as plain-text documents — plus
+          <span class="mono">matter.json</span>, the complete raw record every document
+          derives from.
+        </p>
+        <div class="export-actions">
+          <a class="btn primary" id="export-link" href="#" download>Download export (.zip)</a>
+          <a class="btn quiet" id="raw-link" href="#" target="_blank" rel="noopener">View raw record</a>
+        </div>
+        <p class="hint">The export is an organized working record — not a filed document and not legal advice.</p>
+      </div>
+
+      <div class="card danger-zone">
+        <h3>Remove this matter</h3>
+        <p style="font-size: 15px;">Deletes this workspace and its record from this machine. Download an export first if you might want it later.</p>
+        <button class="btn danger" id="delete-matter">Delete this matter…</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="static/matter.js"></script>
+</body>
+</html>

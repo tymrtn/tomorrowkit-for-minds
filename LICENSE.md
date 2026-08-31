@@ -1,3 +1,12 @@
+# License scope
+
+This license applies only to the original Tomorrowkit-specific code,
+documentation, manifest, skills, and artwork in this repository. It does not
+relicense the Imbue Minds workspace template, vendored projects, or other
+third-party components. Those materials remain governed by their own licenses
+and notices, including the license files within their directories. See
+`THIRD_PARTY_NOTICES.md`.
+
 # Fair Core License, Version 1.0, MIT Future License
 
 ## Abbreviation

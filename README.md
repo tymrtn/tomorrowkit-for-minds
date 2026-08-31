@@ -1,125 +1,142 @@
-# Tomorrowkit for Minds
+# Tomorrowkit
 
-**One invention, one workspace.**
+**One invention, one private workspace.**
 
-Tomorrowkit is a local-first orientation and provisional-patent workspace built
-to run inside [Imbue Minds](https://imbue.com/product/minds). It helps an
-inventor turn a rough idea into an organized, evidence-aware working record
-without pretending to replace professional judgment or file an application.
+Tomorrowkit is a guided provisional-patent workspace for
+[Imbue Minds](https://imbue.com/product/minds). It helps an inventor develop a
+rough technical idea, preserve their own reasoning, organize prior art and
+other references as they work, and leave with a portable matter record.
 
-This repository is an early working prototype and an independent community
-project. It is not an official Imbue product and is not endorsed by Imbue.
+> This is a Minds inspiration: a bootable snapshot of an app and its agent
+> workflow, published so another Mind can be created from it and adapted. The
+> `welcome` skill introduces the workspace on the first turn; the user works
+> with the agent configured for their Mind rather than moving prompts between
+> products.
+
+Tomorrowkit is an independent community project, not an official Imbue product
+and not endorsed by Imbue.
 
 ![Tomorrowkit orientation](docs/images/orientation.png)
 
 ![Tomorrowkit matter workspace](docs/images/matter-workspace.png)
 
-## What it includes
+## The experience
 
-- A calm, plain-English orientation to the patent journey
-- One private matter workspace per invention
-- An editable invention brief in the inventor's own language
-- Guided harvesting checkpoints for use with the inventor's existing agent
-- An Invention Map for components, flows, alternatives, and open questions
-- A living Reference Library for patents, papers, products, standards, and leads
-- A Decision Ledger recording important human choices and rationale
-- Separate IVS and PAS self-review lenses for the provisional stage
-- Portable Markdown and JSON exports
+A new Mind begins by asking what the inventor wants to work on. It creates one
+matter and then maintains two synchronized surfaces:
 
-The product deliberately excludes multi-model council claims, formal patent
-drawings, filing automation, legal conclusions, and non-provisional/PCT
-prosecution scoring. See [the architecture brief](docs/architecture.md) for the
-product reasoning and intended future direction.
+- **The Mind's conversation** is where the invention harvest happens. The
+  active agent asks questions, researches with tools the user has approved,
+  tests assumptions, and proposes updates.
+- **The Tomorrowkit tab** is the visible working record: Matter Home,
+  Invention Brief, Harvesting Room, Invention Map, Reference Library, Decision
+  Ledger, provisional-stage scorecards, and export.
+
+The user never has to copy a canned prompt into another chat. The agent reads
+and updates the same validated local record displayed by the app.
 
 ## Why Minds
 
-Tomorrowkit is designed as a vertical application inside a user-controlled
-personal computing environment. The application stores each matter as a local
-JSON record, makes uncertainty visible, and gives the inventor a complete
-export rather than trapping the work in a hosted service.
+Minds gives Tomorrowkit the properties that matter here: a reusable template
+that can become the user's own workspace; a privacy-oriented environment that
+can run locally or through Imbue's cloud; persistent project context; and an
+agent system that is not inherently limited to one model vendor.
 
-The app itself does not call an AI provider. Harvesting checkpoints create
-context-rich prompts that the user copies into an agent they already trust.
+Tomorrowkit therefore does not embed a provider key or call a hard-coded model
+API. It supplies the invention workflow and artifacts to whichever agent is
+configured for the Mind. The included workspace currently follows Minds'
+default agent setup; mngr's agent/provider architecture leaves room for Claude,
+Codex, Gemini, and other integrations. A genuine multi-model Council Room is a
+future extension and is not simulated in this release.
 
-## Requirements
+## What it includes
 
-- A current Minds workspace
-- Python 3.11 or later
-- `uv`
-- The `imbue-common` package supplied by the Minds workspace (or PyPI for
-  standalone development)
+- Plain-English orientation to provisional-stage patent work
+- One matter per Mind
+- An editable invention brief in the inventor's language
+- Four guided checkpoints: intake, prospecting, disclosure development, and
+  adversarial review
+- An Invention Map for mechanisms, flows, alternatives, and open questions
+- A living Reference Library for patents, papers, products, standards, and
+  research leads, including provenance and verification state
+- A Decision Ledger for inventor-approved choices
+- Separate IVS and PAS review lenses, never collapsed into one magic score
+- Portable Markdown, JSON, and ZIP exports
 
-Minds currently has its own
-[FCL-1.0-MIT license](https://github.com/imbue-ai/mngr/blob/main/apps/minds/LICENSE).
-That license governs Minds itself; this repository contains only the
-Tomorrowkit application.
+The first version deliberately excludes formal patent figures, filing
+automation, PCT/non-provisional prosecution scoring, and claims that a single
+agent constitutes a council.
 
-## Install into Minds
+## How it works
 
-From the root of a Minds workspace:
+Three parts are joined inside the same Mind:
 
-1. Copy or clone this repository to `system/apps/tomorrowkit/`.
-2. Add `"tomorrowkit"` to `[project].dependencies` in the workspace's root
-   `pyproject.toml`.
-3. Add `tomorrowkit = { workspace = true }` to `[tool.uv.sources]`.
-4. Run `uv sync --all-packages`.
-5. Append the contents of
-   [`supervisord-program.snippet.conf`](supervisord-program.snippet.conf) to
-   `system/supervisord.conf`, choosing a free port if 8090 is occupied.
-6. Run `supervisorctl reread && supervisorctl update`.
+1. **The `tomorrowkit-provisional` skill does the thinking.** It conducts the
+   interview, preserves the distinction between inventor statements and model
+   suggestions, grows the reference library, and identifies gaps.
+2. **The Tomorrowkit web service is the visual surface.** It runs as a local
+   service registered with Minds and appears at `/service/tomorrowkit/`.
+3. **The `tomorrowkit-workspace` command is the bridge.** It gives the agent a
+   deterministic, schema-validated way to create, inspect, and revision-check
+   updates to the record. References enter as unverified leads by default.
 
-The application will appear at `/service/tomorrowkit/` after the Minds service
-proxy discovers it.
+Matter data lives under `runtime/tomorrowkit/` in the booted Mind and is covered
+by the workspace's normal persistence and backup behavior.
 
-## Run locally for development
+## Adopting this inspiration
+
+Create a Mind from this repository. On its first turn the `welcome` skill reads
+[`inspiration-tomorrowkit.md`](inspiration-tomorrowkit.md), explains the
+workspace, and asks for the core idea in the inventor's own words. No connector
+or additional API key is required to begin.
+
+The manifest is the adoption contract: it explains prerequisites, first-run
+behavior, deliberate limitations, and how the agent should adapt the snapshot.
+
+## Development
+
+The bootable snapshot is based on Imbue's default persistent-workspace template.
+The Tomorrowkit-specific pieces are:
+
+- `inspiration-tomorrowkit.md` and `inspiration-tomorrowkit.svg`
+- `.agents/skills/welcome`
+- `.agents/skills/tomorrowkit-provisional`
+- `libs/tomorrowkit`
+- the `[program:tomorrowkit]` entry in `supervisord.conf`
+
+Install the workspace and run the Tomorrowkit tests:
 
 ```bash
-uv sync --all-groups
-uv run --no-project --with . tomorrowkit
+uv sync --all-packages
+uv run pytest libs/tomorrowkit
+uv run pyright libs/tomorrowkit/src/tomorrowkit
+```
+
+For service-only development:
+
+```bash
+TOMORROWKIT_DATA_DIR=/tmp/tomorrowkit-data uv run tomorrowkit
 ```
 
 Then open `http://127.0.0.1:8090`.
 
-Run the tests with:
+## Privacy and legal boundary
 
-```bash
-uv run pytest
-```
-
-## Data and privacy
-
-By default, matter records are stored as plaintext JSON under
-`data/.apps/tomorrowkit/matters/`. Set `TOMORROWKIT_DATA_DIR` to use another
-location and `TOMORROWKIT_PORT` to change the local port.
-
-The server binds to `127.0.0.1` and is intended to run behind Minds. It has no
-built-in user authentication and should not be exposed directly to a public
-network. Read [SECURITY.md](SECURITY.md) before changing its deployment model.
-
-## Legal boundary
+Matter records are local plaintext JSON inside the Mind's runtime directory.
+Use the privacy mode and model account appropriate for the sensitivity of the
+work, enable available training opt-outs, and connect only services the user
+chooses. Read [SECURITY.md](SECURITY.md) before exposing the service outside
+Minds; it binds to localhost and has no standalone authentication layer.
 
 Tomorrowkit organizes an inventor-controlled working record. It does not file
 applications, determine inventorship, provide legal advice, or guarantee that
-any disclosure supports a later claim. Patent rights and deadlines depend on
-the facts and jurisdiction; obtain qualified advice when the stakes warrant it.
-
-## Third-party materials
-
-The bundled Archivo, IBM Plex Mono, and Source Serif 4 fonts are licensed under
-the SIL Open Font License 1.1. See
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+a disclosure supports a later claim.
 
 ## License
 
-Tomorrowkit is available under the
+Tomorrowkit-specific code and documentation are available under the
 [Fair Core License 1.0 with an MIT future license](LICENSE.md). Noncompeting
 use is permitted immediately; each version becomes available under MIT two
-years after its release. This follows the licensing approach used by Minds
-while keeping Tomorrowkit independently owned and distributed.
-
-## Project status
-
-Version 0.1 is intentionally narrow: orientation, structured provisional-stage
-work, references, decisions, and export. The most important future extension
-is a genuine Council Room with independent model contexts and explicit
-reconciliation—not a single-agent simulation of consensus.
+years after release. The bootable Minds workspace also contains third-party
+components under their own licenses. Bundled font notices are collected in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
