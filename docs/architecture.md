@@ -1,178 +1,300 @@
-# Tomorrowkit for Minds — First Inspiration Architecture
+# Tomorrowkit for Minds — Conversational Product Architecture
 
-## Purpose
+## Product decision
 
-Create a local-first, single-inventor provisional-patent workspace inside Minds. It should give a person a calm orientation, turn one rough idea into one private matter workspace, and help them work productively with their existing local AI agent.
+Tomorrowkit is an interactive invention-harvest conversation with a living
+record beside it. The chat is the primary product surface. The web service is a
+record viewer, visual thinking surface, correction layer, and export tool.
 
-This is deliberately not a full patent-filing product, a formal drawing tool, or a multi-model council. It is the useful, trustworthy first layer of Tomorrowkit.
+This supersedes the earlier form-first architecture. A long orientation page,
+matter-creation form, blank brief, checkpoint administrator, or scorecard full
+of empty fields is not the intended user journey. Those controls may remain as
+secondary inspection and correction affordances, but the agent must create and
+maintain the record through the conversation.
 
 ## Product promise
 
-**One invention, one workspace.**
+**Tell Tomorrowkit how the invention works. Watch the invention record take
+shape.**
 
-The product helps an inventor go from “I have an idea” to an organized, evidence-aware provisional-workspace record. The inventor retains control of their materials and uses an AI account they are comfortable using for sensitive work.
+A solo inventor should be able to begin with an unpolished explanation, answer
+one useful question at a time, and leave with:
 
-The paid or advanced future of the product is not a tollbooth around the inventor’s work. It adds convenience and higher-assurance capabilities—especially a genuine independent model council—while the user keeps a portable matter record.
+- a source-aware invention brief;
+- a concrete technical mechanism and representative implementation;
+- multiple inventor-confirmed invention seeds before thesis selection;
+- a living Reference Library with provenance and verification state;
+- an inventor-approved objective profile and terrain declaration;
+- an explicit provisional disclosure posture;
+- a human decision trail, visible uncertainty, and next action; and
+- a portable matter export.
 
-## Version-one boundary
+## Surface model
 
-### Include
+Three pieces share one matter:
 
-- A friendly orientation to the patent journey, key vocabulary, and Tomorrowkit stages.
-- A short intake that creates one dedicated matter workspace for one invention.
-- A structured provisional-stage workspace.
-- A guided harvesting workflow run through the user’s existing local agent.
-- A lightweight visual Invention Map for systems, flows, alternatives, and open questions.
-- A living Reference Library for prior art, sources, and research leads.
-- A plain-language stage view, decision ledger, and portable export.
-- Practical privacy guidance: use an account appropriate for sensitive work, disable training where the provider makes that available, and connect only sources that help.
+1. **Minds chat — primary surface.** The configured agent runs the adaptive
+   interview, proposes alternatives, explains decisions in context, and asks
+   one useful question per turn.
+2. **Tomorrowkit tab — live sidecar.** It displays the brief, map, sources,
+   decisions, score lenses, and export. It opens beside the chat with
+   `python3 scripts/layout.py open tomorrowkit` after a matter is created or
+   resumed.
+3. **`tomorrowkit-workspace` — validated bridge.** The agent lists, creates,
+   reads, and revision-checks record updates. The user never moves prompts or
+   answers between surfaces.
 
-### Exclude
+The conversation and record are not two separate workflows. Each meaningful
+answer changes the same matter the sidecar displays.
 
-- A multi-provider council, automatic parallel model routing, or a claim that independent council review already exists.
-- Formal patent drawing generation, formal drawing-sheet formatting, or non-provisional/PCT figure export.
-- Filing automation, fee payment, USPTO submission, or legal conclusions.
-- Silent public sharing, outbound messages, or consequential external actions.
-- Non-provisional/PCT prosecution scoring and workflows.
+## First-run experience
 
-## Experience flow
+### Resume before onboarding
+
+On entry, the agent runs `tomorrowkit-workspace list`. If a matter exists, it
+reads the current record, opens the Tomorrowkit tab beside chat, gives a compact
+recap, and asks the next state-specific question. It does not restart the quiz
+or ask the inventor to repeat information already in the matter.
+
+### Five-question adaptive triage
+
+If no matter exists, the agent asks exactly five setup questions, one at a
+time:
+
+1. Where does it stand: in the inventor's head, documented or built, in a draft
+   provisional, or already filed?
+2. Is it private, shared only confidentially, maybe public, or already public or
+   commercial? If disclosure may have occurred, what and when?
+3. What should the patent work accomplish? The inventor may select up to three
+   objectives.
+4. What source material exists: this conversation only, notes or sketches,
+   technical/prototype materials, or a draft/filing?
+5. How should the agent work: interview-first, guided drafting, assisted
+   autonomy with human gates, or high autonomy with the same human-only gates?
+
+Each question may use concise choice chips plus free text. An answer can trigger
+one narrow clarification inside that category, such as the date of a disclosed
+demo. If the opening message already answers a category, the agent records it
+instead of repeating a robotic question.
+
+After the first answered category, the agent creates an untitled matter and
+opens the sidecar so every later answer has somewhere to land. Once all five
+categories are covered, it moves into Source Lock. The early mechanism
+interview supplies a real title and description. Creation is a result of the
+conversation, not a separate form submission.
+
+## Workflow state machine
 
 ```text
-Orientation → minimal confidential idea brief → create matter workspace
-→ guided invention harvest → organize sources and decisions
-→ develop provisional disclosure readiness → export or continue
+WELCOME
+  -> TRIAGE_QUIZ
+  -> SOURCE_LOCK
+  -> OBJECTIVE_LOCK
+  -> CORE_MECHANISM
+  -> SEED_EXPANSION
+  -> SEED_ASSAY
+  -> TERRAIN_SELECTION
+  -> PROVISIONAL_POSTURE
+  -> DISCLOSURE_BUILD
+  -> ATTACK_REPAIR
+  -> READY_HANDOFF
 ```
 
-### Orientation
+State transitions depend on evidence and human decisions, not a number of
+messages. A later disclosure, source, contributor, target, or mechanism can
+invalidate an earlier gate. The system returns to that state, records the
+reason, and repairs downstream summaries.
 
-The orientation is a useful product in its own right. It should explain, in plain English:
+### State gates
 
-1. What a patent process is trying to protect.
-2. The difference between an idea, an invention disclosure, a provisional application, and a later examined application.
-3. Essential vocabulary: priority date, disclosure, claims, provisional application, non-provisional application, PCT, and new matter.
-4. The Tomorrowkit stage map.
-5. The inventor’s human role when using AI: understand, select, modify, and approve important decisions.
-6. The three high-level moments that matter: before public disclosure, before filing a provisional, and before the later conversion decision.
+| State | Conversation job | Gate to advance |
+|---|---|---|
+| Welcome | Explain the experience in one or two sentences. | Existing matter loaded or first quiz answer requested. |
+| Triage Quiz | Route by idea state, disclosure state, objectives, available source material, and working style. | Matter created with all five orientation choices and any known disclosure/filing dates. |
+| Source Lock | Separate earlier inventor source, later notes, external references, and generated material; capture contributors, ownership, and disclosure facts. | Sources classified and human-risk facts answered or visibly unresolved. |
+| Objective Lock | Establish target, value thesis, commercial/public-benefit surface, privacy/trade-secret boundary, budget/timing, and 12/24-month success. | Inventor confirms or corrects the objective profile. |
+| Core Mechanism | Elicit actors, components, relationships, operating cycle, causal mechanism, implementation, evidence, constraints, failures, and inventor-known alternatives. | Inventor can explain a coherent representative implementation. |
+| Seed Expansion | Split the invention into distinct technical mechanisms and hidden control/evidence paths. | Multiple seeds confirmed by the inventor, or a recorded single-seed waiver. |
+| Seed Assay | Apply preliminary closest-art, five-angle search, design-around pressure, evidence, and available IVS dimensions per seed. | Comparable, uncertainty-aware seed portfolio exists. |
+| Terrain Selection | Compare standalone/combine/later/defer/no-file routes and purchased-with tradeoffs. | Inventor approves the terrain to stake. |
+| Provisional Posture | Choose lean-core, disclosure reservoir, or layered provisionals and identify now/withheld/staged material. | Posture, dates, constraints, triggers, and inventor approval recorded. |
+| Disclosure Build | Develop make/use support, alternatives, parameters, failures, examples, evidence, and fallback hooks for selected terrain. | Coherent candidate record with visible gaps and no silent source contamination. |
+| Attack/Repair | Stress novelty assumptions, obvious combinations, abstract framing, support, priority, disclosures, terminology, and design-arounds. | Gaps prioritized and dispositioned; inventor confirms next move. |
+| Ready/Handoff | Summarize coverage, uncertainty, sources, terrain, posture, dates, withheld/later material, and next decision. | Inventor chooses export, continued work, or a separately authorized next workflow. |
 
-The orientation should be calm and practical rather than fear-driven. It is not legal advice, and it should not overwhelm a new inventor with a terms-of-service or compliance lecture.
+## Per-turn orchestration
 
-### Minimal handoff
+Every substantive exchange follows this loop:
 
-When a user chooses **Create my invention workspace**, collect only what is needed to create a useful starting point:
+```text
+ask one useful question
+  -> receive answer
+  -> classify provenance
+  -> extract candidate record changes
+  -> confirm when the change is consequential
+  -> revision-check and update the matter
+  -> reflect a compact “I captured…” summary when useful
+  -> choose the highest-value unanswered question
+```
 
-- Working title.
-- A short description of the problem and intended approach.
-- Current stage: early idea, draft-ready, filed provisional, or existing application.
-- Known important dates or prior public disclosures, if the user knows them.
-- The user’s immediate goal.
-- An optional visual theme or industry cue.
+The next question comes from the current gate and the largest material gap, not
+from a static questionnaire. Low-risk organization can happen automatically
+within the selected autonomy level. The inventor always controls source
+classification, objective changes, conception/possession facts, seed and
+terrain selection, disclosure posture, withheld matter, publication, filing,
+spend, and final external actions.
 
-Do not hard-code a long invention interview into the UI. The detailed, adaptive harvest belongs to the Tomorrowkit guidance supplied to the user’s agent.
+If a record update is stale, the agent reloads and reconciles. If the sidecar
+cannot open, the chat and record updates continue and the failure is reported
+once without a retry loop.
 
-## Matter workspace
+## Record model within the current service
 
-Each matter should start with these connected areas:
+The matter stores the five orientation answers and the explicit workflow phase.
+The nine working phases from Source Lock through Attack/Repair each have a
+corresponding checkpoint for an approved summary and status. Welcome, Triage
+Quiz, and Ready/Handoff are workflow phases without harvest cards.
 
-### Matter Home
+The agent advances `workflow_phase`, maintains the current checkpoint, brief,
+map, Reference Library, Decision Ledger, knowns, uncertainties, and next action.
+Checkpoint status is derived from the conversation; the user is not expected to
+administer it.
 
-- Current plain-language stage.
-- What is known.
-- What remains uncertain.
-- Next recommended action.
-- Important dates that the user has entered.
+### Invention brief
 
-### Invention Brief
+The brief is generated from the conversation and kept in the inventor's
+language. It covers problem, mechanism, intended result, alternatives, and open
+questions. The user may edit it, but a blank brief is never presented as their
+next task.
 
-An evolving, human-reviewable account of the problem, proposed mechanism, intended result, alternatives, and unanswered questions. Preserve the inventor’s language rather than replacing it with polished patent prose prematurely.
+### Invention map
 
-### Harvesting Room
-
-The place where the user works with their existing agent. Tomorrowkit’s existing intake, prospecting, drafting, and adversarial guidance remains the workflow intelligence. The UI provides checkpoints and artifacts; it does not freeze the process into a fixed questionnaire.
-
-### Invention Map
-
-A simple, editable visual workflow canvas—not a patent figure editor.
-
-It should let the inventor and agent lay out:
-
-- Components, actors, inputs, outputs, and steps.
-- Relationships and flows.
-- Alternative embodiments and implementation branches.
-- Questions, assumptions, evidence links, and unresolved areas.
-
-It is for thinking, explaining, and improving disclosure. It must not claim to produce formal patent drawings or offer filing-standard export.
+The map is a visual explanation and thinking canvas for components, actors,
+inputs, outputs, steps, alternatives, evidence, assumptions, and questions. It
+is not a formal patent drawing. The agent may append useful map elements as the
+mechanism becomes clear; the user may rearrange or correct them in the sidecar.
 
 ### Reference Library
 
-This is a central version-one artifact, not an optional add-on. It turns scattered research into an organized, inspectable record and demonstrates the value of structured Tomorrowkit work over ad hoc chat.
+Every inventor material, patent publication, paper, product, standard, web
+source, or research lead that shapes the matter can be recorded with:
 
-Each entry should support:
+- citation or stable link;
+- source type and date;
+- relevance and relationship to the matter;
+- technical, seed, embodiment, product, market, and jurisdiction tags;
+- provenance; and
+- lead, reviewed, or verified status.
 
-- Citation or stable source link.
-- Source type: patent publication, paper, product, web page, standard, inventor material, or research lead.
-- Short plain-language relevance note.
-- Tags for technical concept, claim family, embodiment, competitor/product, market, jurisdiction, and status.
-- Relationship to the matter: supports, contradicts, raises a design-around, creates a search lead, or needs verification.
-- Date and provenance metadata when available.
-- A verification state: lead, reviewed, or verified.
-
-The Reference Library is an evolving research and disclosure artifact. It should not call itself a filed information-disclosure statement or imply that it satisfies any formal filing obligation. Its purpose is to make later review, counsel handoff, and any formal reference process dramatically easier.
+New research enters as a lead. “No result found” is a search-confidence gap,
+not proof of novelty. Public sources that may need later patent-office
+reference review are distinguishable from internal model analysis.
 
 ### Decision Ledger
 
-Capture important human decisions and their rationale, including:
+The ledger records inventor-confirmed objective, source, seed, terrain,
+embodiment, disclosure-posture, withheld-matter, and suggestion-disposition
+decisions with rationale. A model recommendation does not become a human
+decision merely because it appears in chat.
 
-- What terrain matters commercially.
-- Which embodiment or route the inventor selected.
-- What was deferred, withheld, or requires more evidence.
-- Which sources and model suggestions were accepted, changed, or rejected.
+## Source and inventorship posture
 
-### Scorecard
+Source Lock precedes model expansion. Preserve these categories:
 
-For the provisional product, render only the two relevant Tomorrowkit lenses:
+- `priority-safe` — inventor material existing by the relevant date;
+- `later-note` — inventor material added later;
+- `external-reference` — public or third-party material;
+- `generated` — model-created proposal or analysis;
+- `IDS-candidate` — public reference potentially needing later formal review;
+- `search-lead` — unverified research lead.
 
-- **IVS — Invention Value Score:** whether the inventor-approved terrain appears worth pursuing.
-- **PAS — Priority Asset Score:** whether the provisional record captures that terrain.
+In a directed human-and-model session, begin with the directing human as the
+inventor. Preserve their problem framing, constraints, steering,
+understanding, selection, modification, integration, and adoption of the
+settled solution. Do not run a detail-by-detail origin audit or discard a
+supported concept merely because a model voiced an option first. Conversely,
+model output alone is not earlier inventor source or proof of human possession.
 
-Never merge these lenses into a single score. Show coverage, evidence level, missing prerequisites, and the underlying reasoning. The later **PSS — Prosecution Survival Score** belongs only in the non-provisional/PCT product.
+## Portfolio gate
 
-Version one may use one agent and structured self-review. It must not represent that as independent council scoring.
+Before provisional drafting or formal figure work:
 
-### Export and handoff
+1. harvest multiple distinct technical seeds;
+2. establish a terrain declaration for each seed or named seed family;
+3. apply preliminary closest-art and design-around pressure;
+4. assess available IVS dimensions with evidence level and coverage;
+5. leave PAS and PSS unassessed until their required artifacts exist;
+6. rank standalone, combine, later filing, defer, or no-file;
+7. state what each combination or narrowing buys and gives up; and
+8. obtain inventor selection.
 
-Give the user a portable package containing their brief, map, reference library, decision ledger, and selected workspace artifacts. The export is theirs to keep, adapt, and share selectively with counsel or collaborators.
+A long draft created before this gate is a workflow failure, not progress.
 
-## Future capability: Council Room
+## Score lenses
 
-The Council Room is a defined future extension, not a disguised version-one feature.
+- **IVS — Invention Value Score:** seed-stage view of whether the selected
+  terrain appears worth pursuing. It can begin during Seed Assay.
+- **PAS — Priority Asset Score:** view of whether a complete provisional
+  candidate or filed provisional actually captures the declared terrain. It
+  remains unassessed before that artifact exists.
+- **PSS — Prosecution Survival Score:** view of an actual later claim set. It is
+  unavailable in the provisional product.
 
-It should eventually provide separate adviser roles with independent contexts:
+Always show coverage, evidence level, missing prerequisites, and reasoning.
+Never merge the lenses into a single score or let a score silently shrink the
+inventor's terrain.
 
-- Lead architect/drafter.
-- Adversarial patent reviewer.
-- Landscape and commercialization strategist.
-- Reconciler/operator.
+## Provisional disclosure postures
 
-The interface must support private conversations with each role, sending a revision to the whole council, preserving disagreement, and recording the human disposition. It must not average away conflicting views or allow a drafter to be the sole grader of its own work.
+The product presents the three postures only after terrain selection:
 
-This requires a genuine Minds extension or fork for multi-provider routing, context separation, permissions, and structured reconciliation.
+- **Lean-core priority stub:** the essential mechanism, relationships, workable
+  implementation, and necessary alternatives/fallbacks receive the first date;
+  nonessential know-how may remain withheld.
+- **Disclosure reservoir:** the widest technically supported set of material
+  alternatives and future paths is disclosed when optionality or imminent
+  publication outweighs disclosure cost.
+- **Layered provisionals:** a lean first layer is followed by planned later
+  layers; every layer receives its own date and the earliest conversion
+  deadline remains conspicuous.
 
-## Design principles
+The required decision record includes rationale, terrain needing the first
+date, intentionally withheld or staged material, public-disclosure and foreign-
+filing constraints, next trigger and target date, earliest known conversion
+deadline, and inventor approval.
 
-1. **Human agency first.** The inventor owns the matter, makes consequential decisions, and can export their work.
-2. **Local-first by default.** External connections are useful optional inputs, not a requirement to start.
-3. **Structured, not bureaucratic.** Every artifact should make the next decision easier.
-4. **Visible uncertainty.** Unknowns stay visible; missing evidence is not silently converted into confidence.
-5. **No false formality.** Do not present provisional aids as formal drawings, scores as legal conclusions, or workflow guidance as filing execution.
-6. **Progressive disclosure.** Teach the next relevant concept when it becomes useful instead of front-loading a course in patent law.
-7. **A complete free baseline.** Advanced service may sell convenience, coordination, and assurance, never ownership of the user’s invention record.
+## Version-one boundaries
 
-## Build request for Minds
+- One invention and one locally stored matter per intended Mind workflow.
+- One configured agent may conduct the workflow; it is not represented as an
+  independent council.
+- Optional research uses only user-approved tools and connections.
+- The product organizes and pressure-tests a working record. It does not
+  determine patentability, guarantee priority, give a legal conclusion, or file
+  an application.
+- Formal drawings, non-provisional/international drafting, PSS, filing screens,
+  signatures, certifications, payment, and submission are outside this product
+  contract unless a later workflow is separately authorized.
 
-Build a polished, private, local-first Minds inspiration called **Tomorrowkit Orientation & Provisional Workspace**.
+## Acceptance criteria
 
-Start with the orientation and matter-creation flow, then create the workspace areas described above. Favor a warm, legible, visual interface over a generic dashboard. Treat the Reference Library and Invention Map as the primary immediately visible artifacts after Matter Home.
+A conforming first run has these observable properties:
 
-Use the user’s existing local agent for guided harvesting. Do not claim a multi-model council, formal patent drawing capability, filing automation, legal advice, or external action-taking. Keep all matter contents editable and exportable.
-
-When an exact Minds platform capability is uncertain, build the clearest safe in-workspace version and explicitly mark the limitation rather than inventing an integration.
+1. The first screen of work is one conversational question, not a form or
+   patent lesson.
+2. The five triage categories are covered one at a time, already answered
+   categories are not repeated, and the first answer creates the matter without
+   a separate manual intake.
+3. The Tomorrowkit tab opens beside chat after create or resume.
+4. Every meaningful answer updates the matter before the next question.
+5. Within the early interview, the brief and uncertainty record visibly grow.
+6. The user is never asked to copy a prompt or manually mark checkpoint status.
+7. Multiple seeds are harvested and confirmed before any drafting step.
+8. Research leads retain provenance and are not silently marked verified.
+9. Terrain selection and provisional posture require explicit inventor
+   confirmation.
+10. PAS stays unassessed until a provisional candidate or filed record exists;
+    PSS is absent without an actual later claim set.
+11. Forms remain optional review/correction surfaces rather than the primary
+    path.
+12. Resume continues from the next material gap instead of repeating onboarding.

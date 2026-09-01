@@ -1,95 +1,210 @@
 ---
 title: Tomorrowkit
-description: A private, guided provisional-patent workspace that helps an inventor develop an idea, preserve human decisions, and build a living reference library with the agent they choose in Minds.
+description: A private conversational invention workspace that turns an inventor's answers into a source-aware matter record, seed portfolio, reference library, and provisional strategy.
 thumbnail: inspiration-tomorrowkit.svg
 ---
 
 # Tomorrowkit
 
-This is the manifest for the **Tomorrowkit** Minds inspiration (slug:
-`tomorrowkit`). A new Mind created from this repository must read this document
-on its first turn and adapt the workspace to one invention.
+This is the product contract for a Mind created from the **Tomorrowkit**
+inspiration.
 
-## What it is
+## The experience
 
-Tomorrowkit turns one Mind into a private working environment for one
-invention. The Mind's configured agent conducts the conversation; the
-Tomorrowkit skill supplies the provisional-stage workflow; and the Tomorrowkit
-web service provides the visual record: orientation, invention brief,
-harvesting checkpoints, invention map, reference library, decision ledger,
-provisional scorecards, and export.
+Tomorrowkit is a conversation, not a patent form.
 
-The application does not embed an API key or bind the workflow to a model
-vendor. It uses the agent selected for the Mind. A user may begin with the
-default agent and later extend the Mind with other mngr-supported agents or
-providers. A future Council Room may reconcile several independent agents, but
-this version never simulates a council with one model.
+The inventor talks through one invention with the Mind's configured agent. The
+agent asks one useful question at a time, adapts to each answer, and quietly
+maintains a structured matter record. The Tomorrowkit tab opens beside the chat
+and shows the live brief, map, references, decisions, score lenses, and export.
+It is a review and correction surface; it is not where the inventor is expected
+to perform the harvest.
 
-## How it works
+The first useful output should appear during the conversation. A new user must
+not be sent through a patent-law course, a multi-field intake, a blank
+dashboard, or a prompt-copying ritual before Tomorrowkit begins helping.
 
-Three pieces work together:
+## First run
 
-- `.agents/skills/tomorrowkit-provisional/SKILL.md` is the workflow. It tells
-  the active Minds agent how to interview the inventor, preserve attribution,
-  prospect references, deepen the disclosure, and identify gaps.
-- `libs/tomorrowkit` is the visual service. It stores each matter as a local
-  JSON record under `runtime/tomorrowkit/`, serves the app at
-  `/service/tomorrowkit/`, and exports portable Markdown and JSON.
-- `tomorrowkit-workspace` is the validated bridge between them. The agent uses
-  it to create, read, and update matter records. It rejects stale writes,
-  validates every update against the matter schema, and marks new references
-  as unverified leads by default.
+The `welcome` skill reads this manifest and the `tomorrowkit-provisional` skill,
+checks for an existing matter with `tomorrowkit-workspace`, and then either
+resumes at the next unanswered decision or starts a five-question adaptive
+triage quiz.
 
-The user should never have to copy a prompt between the web app and a chat.
-They talk to the Mind. The agent reads and updates the same record displayed by
-the Tomorrowkit tab.
+The five questions cover the inventor's starting situation. After each answer,
+the orientation gives one short, contextual explanation of why that choice
+matters; it does not front-load a glossary or patent-law course. The questions
+cover:
 
-## Prerequisites
+1. whether the invention is in the inventor's head, documented or built, in a
+   draft provisional, or already filed;
+2. whether it is private, shared confidentially, maybe public, or already public
+   or commercial, with a date follow-up when needed;
+3. up to three objectives for the patent work;
+4. whether the inventor has only the conversation, notes or sketches,
+   technical/prototype materials, or a draft/filing; and
+5. the inventor's preferred working style and limits.
 
-The initial inspiration has no required connector, external account, or API
-secret. It runs with the agent and privacy mode the user chose for their Mind.
-Optional research connectors can be added later with the user's permission.
+They are covered one at a time. If the inventor's opening already answers a
+category, the agent records it rather than repeating the question. After the
+first answered category, the agent creates an untitled matter and opens the
+Tomorrowkit service beside the chat with
+`python3 scripts/layout.py open tomorrowkit`. Every later answer updates that
+matter. Once all five categories are covered, the conversation moves into
+Source Lock and the technical interview; the first mechanism answers replace
+the placeholder title. The quiz routes the work and does not pretend to decide
+patentability or filing readiness.
 
-## How to adapt it
+## Canonical workflow
 
-Instructions for the agent in a newly created Mind:
+The agent maintains this state machine:
 
-1. Read this entire manifest and the `tomorrowkit-provisional` skill.
-2. Explain in plain language that this Mind will become a private workspace for
-   one invention. Make clear that Tomorrowkit organizes the inventor's record;
-   it does not file an application or determine legal rights.
-3. Ask for the core idea in the inventor's own words. Then ask only the
-   minimum follow-up questions needed to create the matter: working title,
-   present stage, known public-disclosure or filing dates, and immediate goal.
-   Ask one question at a time.
-4. Create the matter with `tomorrowkit-workspace create`, then tell the user
-   the Tomorrowkit tab is ready. Do not ask them to edit JSON or copy prompts.
-5. Continue the harvest in the Mind's conversation. After each meaningful
-   exchange, use `tomorrowkit-workspace show` and a revision-checked patch to
-   update the brief, checkpoint notes, reference library, decisions, and next
-   action.
-6. Ask before treating an inference as an inventor-approved fact. Preserve the
-   user's words and keep model suggestions visibly distinct.
-7. When adapting the workflow or interface, record the change in the git
-   history. Do not silently alter the user's matter or apply proposed rules
-   without confirmation.
+```text
+WELCOME
+  -> TRIAGE_QUIZ
+  -> SOURCE_LOCK
+  -> OBJECTIVE_LOCK
+  -> CORE_MECHANISM
+  -> SEED_EXPANSION
+  -> SEED_ASSAY
+  -> TERRAIN_SELECTION
+  -> PROVISIONAL_POSTURE
+  -> DISCLOSURE_BUILD
+  -> ATTACK_REPAIR
+  -> READY_HANDOFF
+```
 
-## Holes and deliberate boundaries
+The states are gates, not pages. New facts can move the conversation backward.
+The agent records the reason and repairs the record rather than pretending the
+earlier state remains complete.
 
-- **No multi-model council yet.** This version uses the active Mind agent. A
-  genuine council needs independent contexts, attributable outputs, and an
-  explicit reconciliation step.
-- **Provisional stage only.** PCT, non-provisional prosecution scoring, formal
-  claims strategy, and formal patent figures are outside this inspiration.
-- **No filing automation.** Export produces a working record, not a ready-to-
-  file application or a legal conclusion.
-- **Reference discovery depends on available tools.** The library works
-  without connectors. Any patent, paper, web, or account connector must be
-  user-approved; new results enter as leads until reviewed.
-- **The Invention Map is a thinking surface.** It is not a formal patent-
-  drawing editor.
+### Source Lock
 
-## Adaptation history
+Separate inventor material that existed by the relevant date from later notes,
+public references, and model-generated proposals before expansion begins.
+Record contributors, ownership concerns, disclosures, filings, and known
+deadlines. Preserve source labels and provenance in the Reference Library and
+decision trail.
 
-Each Mind that materially adapts this inspiration should append a dated entry
-below without rewriting earlier entries.
+### Objective Lock
+
+Turn broad goals into an inventor-confirmed value thesis: what the patent is
+for, who or what it should read on, who may pay or adopt, which control point or
+economic surface matters, what should remain private, realistic budget and
+timing, and 12- and 24-month success. Record the autonomy level and limits.
+
+### Core Mechanism
+
+Interview past the product pitch into the technical operation: actors,
+components, inputs, outputs, relationships, a complete operating cycle, the
+mechanism that causes the result, evidence or testing, constraints, failure
+modes, rejected approaches, and inventor-known alternatives. Populate the live
+brief in the inventor's language and keep uncertainty visible.
+
+### Seed Expansion and Assay
+
+Harvest multiple distinct technical seeds before choosing a filing thesis. A
+seed must be a claimable mechanism or architecture, not a desired benefit,
+market label, score, or generic use of AI. Model-proposed seeds stay labeled as
+proposals until the inventor accepts, edits, rejects, or defers them.
+
+Pressure-test every confirmed seed through preliminary closest-art and design-
+around work. Search results enter the Reference Library as leads until checked.
+At seed stage, assess only available **Invention Value Score (IVS)** dimensions,
+with evidence and coverage visible. **Priority Asset Score (PAS)** remains
+unassessed until there is a complete provisional candidate or filed provisional.
+**Prosecution Survival Score (PSS)** requires an actual later claim set and is
+outside this provisional experience. The lenses are never collapsed into one
+magic number.
+
+### Terrain Selection
+
+Show the seed portfolio side by side and let the inventor choose whether each
+seed should stand alone, combine, move to a later filing, defer, or stop. Record
+what is gained and surrendered by narrowing or combining. No provisional draft
+or formal figure work begins until the inventor confirms the terrain to stake.
+
+### Provisional Posture
+
+After terrain selection, the inventor chooses:
+
+- a **lean-core priority stub** for the essential core and a workable
+  implementation while intentionally withholding nonessential know-how;
+- a **disclosure reservoir** for the widest technically supported set of future
+  paths; or
+- **layered provisionals** for a planned sequence in which each layer receives
+  its own date.
+
+The record must state what needs the first date, what remains withheld or
+staged, disclosure and foreign-filing constraints, the next-filing trigger and
+target date, the earliest known conversion deadline, and the inventor's
+approval. The agent may recommend; it may not silently choose.
+
+### Disclosure Build, Attack/Repair, and Handoff
+
+Deepen only the selected terrain and posture. Ask the next missing technical
+question, preserve implementation detail and useful alternatives, and avoid
+padding the record or leaking deliberately withheld know-how. Then attack weak
+novelty assumptions, obvious combinations, abstract framing, missing support,
+public-disclosure or priority problems, unclear terms, and design-arounds.
+
+The inventor decides whether to fight, narrow, add fallback coverage, park,
+split, defer, drop, or seek counsel. Handoff reports coverage, uncertainty,
+unverified leads, important dates, selected terrain and posture, withheld/later
+material, and the next human decision. Tomorrowkit does not claim that the
+matter is filing-ready or that the invention is patentable.
+
+## Living record
+
+After each meaningful answer, the agent rereads the matter and applies a
+revision-checked update through `tomorrowkit-workspace`. It updates the brief,
+knowns, uncertainties, next action, checkpoint notes, Reference Library, and
+Decision Ledger before asking the next question. A stale update is reconciled,
+never blindly overwritten.
+
+The record distinguishes:
+
+- earlier inventor source (`priority-safe`);
+- inventor material added later (`later-note`);
+- public or third-party material (`external-reference`);
+- model-created material (`generated`);
+- public references needing later review (`IDS-candidate` or `search-lead`);
+- confirmed human decisions and the rationale for them.
+
+In a directed inventor-and-model session, begin with the directing human as the
+inventor and preserve their problem framing, constraints, steering,
+understanding, selection, modification, integration, and adoption of the
+settled solution. Do not run a word-by-word origin audit. At the same time,
+model output alone is not inventor source or proof of possession.
+
+## Human control
+
+The inventor retains control of the matter and its export. The agent must stop
+for objective changes, source/priority classifications, contributor and
+ownership facts, seed and terrain selection, disclosure posture, withheld
+matter, publication, filing route or spend, signatures, certifications,
+payment, and final submission.
+
+Tomorrowkit never requires the user to copy prompts between products. It uses
+the agent already configured for the Mind and only the external tools or
+connectors the user authorizes. A single agent may perform structured roles but
+must not be represented as an independent multi-model council.
+
+## Boundaries
+
+- The initial experience organizes and develops a provisional-stage invention
+  record; it does not file an application or determine legal rights.
+- The Invention Map is a thinking surface, not a formal patent drawing system.
+- Research leads are not verified merely because a model found them.
+- Formal non-provisional/international claims, prosecution scoring, filing
+  automation, signatures, payment, and submission require later workflows and
+  explicit human authority.
+- The matter remains locally stored and exportable under the Mind's normal
+  persistence model.
+
+## Adaptation rule
+
+Adapt the interface and agent around this conversational contract. Forms may be
+kept for review, correction, accessibility, or export inspection, but they must
+not become the primary invention-harvest path. When product behavior and a
+form-first screen conflict, this manifest controls.

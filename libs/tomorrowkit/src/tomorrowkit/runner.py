@@ -36,10 +36,18 @@ from flask import (
 from pydantic import ValidationError
 from werkzeug.serving import run_simple
 
-from tomorrowkit.data_types import MatterDocument, MatterId, MatterIntake
+from tomorrowkit.data_types import (
+    MatterDocument,
+    MatterId,
+    MatterIntake,
+    OrientationProfile,
+)
 from tomorrowkit.errors import MatterNotFoundError, StaleMatterError
 from tomorrowkit.export import build_export_zip_bytes
-from tomorrowkit.factories import create_matter_from_intake
+from tomorrowkit.factories import (
+    create_matter_from_intake,
+    create_matter_from_orientation,
+)
 from tomorrowkit.storage import FileMatterStore, MatterStoreInterface
 
 # Persistent state for this app lives under DATA_DIR. It defaults to
@@ -120,6 +128,32 @@ def build_app(store: MatterStoreInterface) -> Flask:
         except ValidationError as e:
             abort(400, description=f"Invalid intake: {e.error_count()} problem(s)")
         matter = create_matter_from_intake(intake)
+        store.save_matter(matter)
+        return Response(
+            matter.model_dump_json(), mimetype="application/json", status=201
+        )
+
+    @app.route("/api/orientation", methods=["POST"])
+    def create_oriented_matter() -> Response:
+        payload = request.get_json(silent=True)
+        if payload is None:
+            abort(400, description="Expected a JSON body")
+        try:
+            orientation = OrientationProfile.model_validate(payload)
+        except ValidationError as e:
+            abort(
+                400,
+                description=f"Invalid orientation: {e.error_count()} problem(s)",
+            )
+        if (
+            orientation.idea_state is None
+            or orientation.disclosure_state is None
+            or not orientation.objectives
+            or orientation.materials_state is None
+            or orientation.collaboration_style is None
+        ):
+            abort(400, description="Expected all five orientation answers")
+        matter = create_matter_from_orientation(orientation)
         store.save_matter(matter)
         return Response(
             matter.model_dump_json(), mimetype="application/json", status=201

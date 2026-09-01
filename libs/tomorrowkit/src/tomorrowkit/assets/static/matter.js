@@ -38,11 +38,6 @@
     SUGGESTION_DISPOSITION: "Suggestion disposition",
     OTHER: "Other"
   };
-  var HARVEST_STATUS_LABELS = {
-    NOT_STARTED: "Not started",
-    IN_PROGRESS: "In progress",
-    CAPTURED: "Captured"
-  };
   var NODE_KIND_LABELS = {
     COMPONENT: "Component",
     ACTOR: "Actor",
@@ -53,6 +48,27 @@
     QUESTION: "Question",
     ASSUMPTION: "Assumption",
     EVIDENCE: "Evidence"
+  };
+  var WORKFLOW_PHASES = [
+    { key: "orient", label: "Orient", phases: ["WELCOME", "TRIAGE_QUIZ"] },
+    { key: "frame", label: "Frame the invention", phases: ["SOURCE_LOCK", "OBJECTIVE_LOCK", "CORE_MECHANISM"] },
+    { key: "explore", label: "Explore the terrain", phases: ["SEED_EXPANSION", "SEED_ASSAY", "TERRAIN_SELECTION"] },
+    { key: "build", label: "Build the disclosure", phases: ["PROVISIONAL_POSTURE", "DISCLOSURE_BUILD"] },
+    { key: "harden", label: "Harden and hand off", phases: ["ATTACK_REPAIR", "READY_HANDOFF"] }
+  ];
+  var WORKFLOW_PHASE_LABELS = {
+    WELCOME: "Welcome",
+    TRIAGE_QUIZ: "Orientation",
+    SOURCE_LOCK: "Lock source facts",
+    OBJECTIVE_LOCK: "Define the objective",
+    CORE_MECHANISM: "Describe the core mechanism",
+    SEED_EXPANSION: "Expand possible invention seeds",
+    SEED_ASSAY: "Test the strongest seeds",
+    TERRAIN_SELECTION: "Choose the terrain",
+    PROVISIONAL_POSTURE: "Set the provisional posture",
+    DISCLOSURE_BUILD: "Build the disclosure",
+    ATTACK_REPAIR: "Attack and repair the record",
+    READY_HANDOFF: "Prepare the handoff"
   };
 
   // Per-matter accent themes. The empty slug is the default drafting blue
@@ -80,8 +96,12 @@
   var doc = null;
   var saveTimer = null;
   var retryTimer = null;
+  var pollTimer = null;
   var isSaving = false;
   var isDirtyWhileSaving = false;
+  var hasUnsavedChanges = false;
+  var editGeneration = 0;
+  var pendingRemoteDoc = null;
 
   function $(id) { return document.getElementById(id); }
 
@@ -112,13 +132,17 @@
 
   function scheduleSave() {
     if (saveTimer) { clearTimeout(saveTimer); }
+    editGeneration += 1;
+    hasUnsavedChanges = true;
     setSaveStatus("Editing…");
     saveTimer = setTimeout(saveNow, 900);
   }
 
   function saveNow() {
     if (isSaving) { isDirtyWhileSaving = true; return; }
+    if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
     isSaving = true;
+    var requestGeneration = editGeneration;
     setSaveStatus("Saving…");
     fetch(API_URL, {
       method: "PUT",
@@ -133,20 +157,195 @@
       if (!response.ok) { throw new Error("save failed (" + response.status + ")"); }
       return response.json();
     }).then(function (saved) {
-      doc.updated_at = saved.updated_at;
       isSaving = false;
-      if (isDirtyWhileSaving) { isDirtyWhileSaving = false; saveNow(); return; }
+      if (editGeneration !== requestGeneration) {
+        // Keep the live document: it contains edits made after this request's
+        // snapshot. Only advance its optimistic-lock revision, then persist
+        // those newer edits in a follow-up request.
+        doc.updated_at = saved.updated_at;
+        isDirtyWhileSaving = false;
+        saveNow();
+        return;
+      }
+      doc = saved;
+      isDirtyWhileSaving = false;
+      hasUnsavedChanges = false;
+      pendingRemoteDoc = null;
+      hideSyncNotice();
+      renderCurrentRecord();
       var when = new Date(saved.updated_at);
       setSaveStatus("Saved " + when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
     }).catch(function (error) {
       isSaving = false;
       if (error.isConflict) {
-        setSaveStatus("Changed in another tab — reload to reconcile", true);
+        setSaveStatus("The agent has a newer version — review before saving", true);
+        fetchRemoteDocument(true);
         return;
       }
       setSaveStatus("Not saved — retrying shortly", true);
       if (retryTimer) { clearTimeout(retryTimer); }
       retryTimer = setTimeout(saveNow, 4000);
+    });
+  }
+
+  /* ---------- live record and companion view ---------- */
+
+  function textOrFallback(value, fallback) {
+    return value && String(value).trim() ? String(value).trim() : fallback;
+  }
+
+  function inferredWorkflowPhase() {
+    if (doc.workflow_phase) { return doc.workflow_phase; }
+    var checkpoints = doc.harvest || [];
+    var captured = checkpoints.filter(function (checkpoint) { return checkpoint.status === "CAPTURED"; });
+    var inProgress = checkpoints.find(function (checkpoint) { return checkpoint.status === "IN_PROGRESS"; });
+    if (inProgress && inProgress.checkpoint_id === "adversarial") { return "ATTACK_REPAIR"; }
+    if (inProgress && inProgress.checkpoint_id === "drafting") { return "DISCLOSURE_BUILD"; }
+    if (inProgress && inProgress.checkpoint_id === "prospecting") { return "SEED_ASSAY"; }
+    if (captured.length >= checkpoints.length && checkpoints.length) { return "READY_HANDOFF"; }
+    if (captured.length >= 3) { return "ATTACK_REPAIR"; }
+    if (captured.length >= 2) { return "DISCLOSURE_BUILD"; }
+    if (captured.length >= 1) { return "SEED_EXPANSION"; }
+    return "SOURCE_LOCK";
+  }
+
+  function workflowGroupIndex(phase) {
+    var index = WORKFLOW_PHASES.findIndex(function (group) {
+      return group.phases.indexOf(phase) !== -1;
+    });
+    return index === -1 ? 1 : index;
+  }
+
+  function renderProgressRail() {
+    var phase = inferredWorkflowPhase();
+    var activeIndex = workflowGroupIndex(phase);
+    $("phase-focus").textContent = WORKFLOW_PHASE_LABELS[phase] || "Develop the record";
+    $("progress-rail").innerHTML = WORKFLOW_PHASES.map(function (group, index) {
+      var state = index < activeIndex ? "complete" : (index === activeIndex ? "active" : "upcoming");
+      var stateLabel = state === "complete" ? "Complete" : (state === "active" ? "Current" : "Later");
+      return '<li class="' + state + '"' + (state === "active" ? ' aria-current="step"' : "") + '>' +
+        '<span class="rail-marker" aria-hidden="true"></span>' +
+        '<span><strong>' + escapeHtml(group.label) + '</strong><small>' + stateLabel + "</small></span>" +
+      "</li>";
+    }).join("");
+  }
+
+  function renderContinue() {
+    var brief = doc.brief || {};
+    var briefFields = [brief.problem, brief.mechanism, brief.intended_result, brief.alternatives, brief.open_questions];
+    var briefCount = briefFields.filter(function (value) { return value && String(value).trim(); }).length;
+    var updated = new Date(doc.updated_at);
+    $("continue-stage").textContent = STAGE_LABELS[doc.stage] || String(doc.stage || "In progress").replace(/_/g, " ");
+    $("continue-updated").textContent = "Record refreshed " + updated.toLocaleString([], {
+      month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
+    });
+    $("continue-next").textContent = textOrFallback(
+      doc.next_action,
+      "Tell Tomorrowkit you are ready to continue. It will begin by confirming the source material and the facts that need dates."
+    );
+    $("continue-known").textContent = textOrFallback(
+      doc.what_is_known,
+      textOrFallback(brief.problem, textOrFallback(doc.problem_summary, "The orientation is complete. The invention itself has not been described yet."))
+    );
+    $("continue-uncertain").textContent = textOrFallback(
+      doc.what_is_uncertain,
+      textOrFallback(brief.open_questions, "Tomorrowkit will keep assumptions, missing dates, and unverified technical details visible as they emerge.")
+    );
+    $("artifact-brief-summary").textContent = textOrFallback(
+      brief.mechanism,
+      textOrFallback(brief.problem, "The conversation will turn your explanation into a structured brief.")
+    );
+    $("artifact-brief-count").textContent = briefCount + " of 5 sections captured";
+    $("artifact-map-count").textContent = (doc.map_nodes || []).length + " elements · " + (doc.map_edges || []).length + " connections";
+    $("artifact-reference-count").textContent = (doc.references || []).length + " sources in the record";
+    $("artifact-decision-count").textContent = (doc.decisions || []).length + " decisions recorded";
+    renderProgressRail();
+  }
+
+  function editableControlHasFocus() {
+    var active = document.activeElement;
+    return Boolean(active && active.closest && active.closest("main") && active.matches("input, textarea, select"));
+  }
+
+  function hasPendingLocalWork() {
+    return hasUnsavedChanges || isSaving || isDirtyWhileSaving || Boolean(saveTimer) || editableControlHasFocus();
+  }
+
+  function showSyncNotice() {
+    $("sync-notice").hidden = false;
+  }
+
+  function hideSyncNotice() {
+    $("sync-notice").hidden = true;
+  }
+
+  function setControlValue(id, value) {
+    var control = $(id);
+    if (control) { control.value = value == null ? "" : value; }
+  }
+
+  function renderReviewFields() {
+    setControlValue("f-title", doc.title);
+    setControlValue("f-stage", doc.stage);
+    setControlValue("f-goal", doc.goal);
+    setControlValue("f-problem", doc.problem_summary);
+    setControlValue("f-known", doc.what_is_known);
+    setControlValue("f-uncertain", doc.what_is_uncertain);
+    setControlValue("f-next", doc.next_action);
+    setControlValue("f-theme", THEME_ACCENTS[doc.theme] ? doc.theme : "");
+    setControlValue("b-problem", doc.brief.problem);
+    setControlValue("b-mechanism", doc.brief.mechanism);
+    setControlValue("b-result", doc.brief.intended_result);
+    setControlValue("b-alternatives", doc.brief.alternatives);
+    setControlValue("b-questions", doc.brief.open_questions);
+    renderDates();
+    renderScorecard();
+  }
+
+  function renderCurrentRecord() {
+    applyTheme();
+    renderSidebar();
+    renderContinue();
+    renderReviewFields();
+    renderLibrary();
+    renderLedger();
+    refreshNodeReferenceOptions();
+    renderMap();
+  }
+
+  function applyRemoteDocument(remote) {
+    doc = remote;
+    pendingRemoteDoc = null;
+    hasUnsavedChanges = false;
+    isDirtyWhileSaving = false;
+    hideSyncNotice();
+    renderCurrentRecord();
+    setSaveStatus("Updated by Tomorrowkit " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+  }
+
+  function fetchRemoteDocument(forceNotice) {
+    fetch(API_URL, { cache: "no-store" }).then(function (response) {
+      if (!response.ok) { throw new Error("refresh failed (" + response.status + ")"); }
+      return response.json();
+    }).then(function (remote) {
+      if (!doc || remote.updated_at === doc.updated_at) { return; }
+      if (forceNotice || hasPendingLocalWork()) {
+        pendingRemoteDoc = remote;
+        showSyncNotice();
+        return;
+      }
+      applyRemoteDocument(remote);
+    }).catch(function () {
+      // The loaded record remains usable. The next polling interval tries again.
+    });
+  }
+
+  function startPolling() {
+    pollTimer = window.setInterval(function () {
+      if (!document.hidden) { fetchRemoteDocument(false); }
+    }, 2500);
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden) { fetchRemoteDocument(false); }
     });
   }
 
@@ -157,8 +356,6 @@
     $("side-stamp").textContent = STAGE_LABELS[doc.stage] || doc.stage;
     $("side-matter-no").textContent = doc.matter_id.slice(-8).toUpperCase();
     document.title = doc.title + " — Tomorrowkit";
-    var captured = doc.harvest.filter(function (c) { return c.status === "CAPTURED"; }).length;
-    $("count-harvest").textContent = captured + "/" + doc.harvest.length;
     $("count-map").textContent = String(doc.map_nodes.length || "");
     $("count-library").textContent = String(doc.references.length || "");
     $("count-ledger").textContent = String(doc.decisions.length || "");
@@ -166,14 +363,29 @@
 
   /* ---------- pane switching ---------- */
 
+  function openPane(paneName) {
+    document.querySelectorAll("#side-nav button").forEach(function (button) {
+      button.classList.toggle("active", button.dataset.pane === paneName);
+    });
+    document.querySelectorAll(".pane").forEach(function (pane) { pane.classList.remove("active"); });
+    var pane = $("pane-" + paneName);
+    if (pane) {
+      pane.classList.add("active");
+      pane.focus({ preventScroll: true });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
+
   function initNav() {
     $("side-nav").addEventListener("click", function (event) {
       var button = event.target.closest("button[data-pane]");
       if (!button) { return; }
-      document.querySelectorAll("#side-nav button").forEach(function (b) { b.classList.remove("active"); });
-      button.classList.add("active");
-      document.querySelectorAll(".pane").forEach(function (pane) { pane.classList.remove("active"); });
-      $("pane-" + button.dataset.pane).classList.add("active");
+      openPane(button.dataset.pane);
+    });
+    document.addEventListener("click", function (event) {
+      var button = event.target.closest("[data-open-pane]");
+      if (!button) { return; }
+      openPane(button.dataset.openPane);
     });
   }
 
@@ -252,38 +464,7 @@
   /* ---------- harvest ---------- */
 
   function renderHarvest() {
-    var container = $("harvest-list");
-    container.innerHTML = "";
-    doc.harvest.forEach(function (checkpoint) {
-      var card = document.createElement("div");
-      card.className = "card checkpoint";
-      card.innerHTML =
-        '<div class="checkpoint-head">' +
-          "<h3>" + escapeHtml(checkpoint.name) + "</h3>" +
-          '<select data-role="status">' +
-            Object.keys(HARVEST_STATUS_LABELS).map(function (key) {
-              return '<option value="' + key + '"' + (checkpoint.status === key ? " selected" : "") + ">" +
-                HARVEST_STATUS_LABELS[key] + "</option>";
-            }).join("") +
-          "</select>" +
-        "</div>" +
-        '<p class="hint" style="margin-top:6px;">' + escapeHtml(checkpoint.purpose) + "</p>" +
-        '<div class="quiet-box"><strong>Handled in your Mind</strong><br>' +
-          'Ask your agent to continue Tomorrowkit. It reads this matter directly and records only the changes you approve.</div>' +
-        '<label class="field">Approved checkpoint notes</label>' +
-        '<textarea data-role="notes" rows="3" placeholder="Notes approved during your conversation…">' +
-          escapeHtml(checkpoint.notes) + "</textarea>";
-      card.querySelector('[data-role="status"]').addEventListener("change", function (e) {
-        checkpoint.status = e.target.value;
-        renderSidebar();
-        scheduleSave();
-      });
-      card.querySelector('[data-role="notes"]').addEventListener("input", function (e) {
-        checkpoint.notes = e.target.value;
-        scheduleSave();
-      });
-      container.appendChild(card);
-    });
+    renderProgressRail();
   }
 
   /* ---------- reference library ---------- */
@@ -490,29 +671,35 @@
   function initScorecardPane() {
     document.querySelectorAll(".lens").forEach(function (card) {
       var lensKey = card.dataset.lens;
-      var lens = doc.scorecard[lensKey];
       card.querySelectorAll("textarea[data-bind]").forEach(function (area) {
         var field = area.dataset.bind;
-        area.value = lens[field];
         area.addEventListener("input", function () {
-          lens[field] = area.value;
+          doc.scorecard[lensKey][field] = area.value;
           scheduleSave();
         });
       });
       var picker = card.querySelector(".level-picker");
-      function paintLevels() {
-        picker.querySelectorAll("button").forEach(function (b) {
-          b.classList.toggle("active", b.dataset.level === lens.level);
-        });
-      }
       picker.addEventListener("click", function (event) {
         var button = event.target.closest("button[data-level]");
         if (!button) { return; }
-        lens.level = button.dataset.level;
-        paintLevels();
+        doc.scorecard[lensKey].level = button.dataset.level;
+        renderScorecard();
         scheduleSave();
       });
-      paintLevels();
+    });
+    renderScorecard();
+  }
+
+  function renderScorecard() {
+    document.querySelectorAll(".lens").forEach(function (card) {
+      var lensKey = card.dataset.lens;
+      var lens = doc.scorecard[lensKey];
+      card.querySelectorAll("textarea[data-bind]").forEach(function (area) {
+        area.value = lens[area.dataset.bind];
+      });
+      card.querySelectorAll(".level-picker button").forEach(function (button) {
+        button.classList.toggle("active", button.dataset.level === lens.level);
+      });
     });
   }
 
@@ -873,6 +1060,13 @@
     initMapPane();
     renderMap();
     initExportPane();
+    renderContinue();
+    $("load-remote-update").addEventListener("click", function () {
+      if (!pendingRemoteDoc || isSaving) { return; }
+      if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+      applyRemoteDocument(pendingRemoteDoc);
+    });
+    startPolling();
     setSaveStatus("Loaded " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
   }).catch(function () {
     setSaveStatus("Couldn't load this matter — reload the page.", true);

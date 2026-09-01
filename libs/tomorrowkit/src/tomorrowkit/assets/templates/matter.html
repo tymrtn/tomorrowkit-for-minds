@@ -19,9 +19,10 @@
         <div class="mono" style="font-size:11px; color: var(--ink-soft);">MATTER <span id="side-matter-no"></span></div>
       </div>
       <ul class="side-nav" id="side-nav">
-        <li><button data-pane="home" class="active">Matter home</button></li>
+        <li><button data-pane="continue" class="active">Continue with Tomorrowkit</button></li>
+        <li class="nav-section">Working record</li>
+        <li><button data-pane="home">Review record</button></li>
         <li><button data-pane="brief">Invention brief</button></li>
-        <li><button data-pane="harvest">Harvesting room <span class="count" id="count-harvest"></span></button></li>
         <li><button data-pane="map">Invention map <span class="count" id="count-map"></span></button></li>
         <li><button data-pane="library">Reference library <span class="count" id="count-library"></span></button></li>
         <li><button data-pane="ledger">Decision ledger <span class="count" id="count-ledger"></span></button></li>
@@ -37,11 +38,102 @@
   </aside>
 
   <main>
+    <div class="sync-notice" id="sync-notice" hidden role="status">
+      <div>
+        <strong>The agent updated this matter while you were reviewing it.</strong>
+        <span>Your unsaved changes have not been overwritten.</span>
+      </div>
+      <button type="button" class="btn tiny" id="load-remote-update">Discard my edits and load it</button>
+    </div>
+
+    <!-- ============ CONTINUE WITH TOMORROWKIT ============ -->
+    <section class="pane active" id="pane-continue">
+      <div class="companion-head">
+        <div>
+          <p class="eyebrow">Your active matter</p>
+          <h2>Continue with Tomorrowkit</h2>
+          <p class="companion-sub" id="continue-updated"></p>
+        </div>
+        <span class="stage-pill" id="continue-stage"></span>
+      </div>
+
+      <section class="conversation-card" aria-labelledby="next-action-heading">
+        <div class="conversation-signal" aria-hidden="true"><span></span><span></span><span></span></div>
+        <p class="eyebrow">Next conversation</p>
+        <h3 id="next-action-heading">The record is ready for the next useful question.</h3>
+        <p id="continue-next"></p>
+        <div class="conversation-location">
+          <strong>Continue in the Mind conversation beside this workspace.</strong>
+          <span>Tomorrowkit reads this record before it asks the next question and writes back only approved changes.</span>
+        </div>
+      </section>
+
+      <section class="workflow-card" aria-labelledby="workflow-heading">
+        <div class="section-heading-row">
+          <div>
+            <p class="eyebrow">Working path</p>
+            <h3 id="workflow-heading">Where the conversation is focused</h3>
+          </div>
+          <span class="phase-focus" id="phase-focus"></span>
+        </div>
+        <ol class="progress-rail" id="progress-rail"></ol>
+      </section>
+
+      <div class="companion-grid">
+        <article class="record-snapshot known-snapshot">
+          <p class="eyebrow">Captured so far</p>
+          <h3>What the record can say now</h3>
+          <p id="continue-known"></p>
+        </article>
+        <article class="record-snapshot uncertain-snapshot">
+          <p class="eyebrow">Needs your input</p>
+          <h3>What Tomorrowkit is keeping open</h3>
+          <p id="continue-uncertain"></p>
+        </article>
+      </div>
+
+      <section class="artifact-section" aria-labelledby="artifact-heading">
+        <div class="section-heading-row">
+          <div>
+            <p class="eyebrow">Living record</p>
+            <h3 id="artifact-heading">What the conversation is building</h3>
+          </div>
+          <button type="button" class="text-action" data-open-pane="home">Review or correct the record</button>
+        </div>
+        <div class="artifact-grid">
+          <button type="button" class="artifact-preview" data-open-pane="brief">
+            <span class="artifact-code">BRIEF</span>
+            <strong>Invention brief</strong>
+            <span id="artifact-brief-summary"></span>
+            <small id="artifact-brief-count"></small>
+          </button>
+          <button type="button" class="artifact-preview" data-open-pane="map">
+            <span class="artifact-code">MAP</span>
+            <strong>Invention map</strong>
+            <span>Components, steps, alternatives, evidence, and open questions.</span>
+            <small id="artifact-map-count"></small>
+          </button>
+          <button type="button" class="artifact-preview" data-open-pane="library">
+            <span class="artifact-code">SOURCES</span>
+            <strong>Reference library</strong>
+            <span>Prior patents, papers, products, standards, and research leads.</span>
+            <small id="artifact-reference-count"></small>
+          </button>
+          <button type="button" class="artifact-preview" data-open-pane="ledger">
+            <span class="artifact-code">DECISIONS</span>
+            <strong>Decision ledger</strong>
+            <span>The choices you approved and the reasons behind them.</span>
+            <small id="artifact-decision-count"></small>
+          </button>
+        </div>
+      </section>
+    </section>
+
     <!-- ============ MATTER HOME ============ -->
-    <section class="pane active" id="pane-home">
+    <section class="pane" id="pane-home">
       <div class="pane-head">
-        <h2>Matter home</h2>
-        <p class="pane-sub">Where this invention stands right now. Keep it honest — visible uncertainty is a feature of a good record.</p>
+        <h2>Review record</h2>
+        <p class="pane-sub">These fields are the structured record behind the conversation. Correct something here when the summary does not match what you meant.</p>
       </div>
 
       <div class="card">
@@ -130,19 +222,6 @@
         <p class="hint">What's undecided or unknown. Keeping these visible is how they get answered.</p>
         <textarea id="b-questions" rows="4"></textarea>
       </div>
-    </section>
-
-    <!-- ============ HARVESTING ROOM ============ -->
-    <section class="pane" id="pane-harvest">
-      <div class="pane-head">
-        <h2>Harvesting room</h2>
-        <p class="pane-sub">
-          These checkpoints are shared with your Mind's agent. Continue the conversation
-          in Minds; the agent reads this matter and updates the brief, map, library, and
-          decisions as you work. No prompt shuttling is required.
-        </p>
-      </div>
-      <div id="harvest-list"></div>
     </section>
 
     <!-- ============ INVENTION MAP ============ -->

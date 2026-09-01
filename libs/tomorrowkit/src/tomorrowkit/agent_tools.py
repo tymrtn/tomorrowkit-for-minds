@@ -11,21 +11,35 @@ import click
 
 from tomorrowkit.data_types import (
     DecisionId,
+    ImportantDate,
+    MapNodeId,
     MatterDocument,
     MatterId,
     MatterIntake,
+    OrientationProfile,
     ReferenceId,
 )
-from tomorrowkit.factories import create_matter_from_intake
+from tomorrowkit.factories import (
+    create_matter_from_intake,
+    create_matter_from_orientation,
+)
 from tomorrowkit.storage import FileMatterStore
 
 _DEFAULT_DATA_DIR = Path("runtime/tomorrowkit")
 _SETTABLE_FIELDS = {
+    "title",
+    "stage",
     "problem_summary",
     "goal",
+    "workflow_phase",
     "what_is_known",
     "what_is_uncertain",
     "next_action",
+    "orientation.idea_state",
+    "orientation.disclosure_state",
+    "orientation.objectives",
+    "orientation.materials_state",
+    "orientation.collaboration_style",
     "brief.problem",
     "brief.mechanism",
     "brief.intended_result",
@@ -98,6 +112,35 @@ def _append_decision(payload: dict[str, Any], entry: dict[str, Any]) -> None:
     payload["decisions"].append(candidate)
 
 
+def _append_date(payload: dict[str, Any], entry: dict[str, Any]) -> None:
+    """Append one validated date, without duplicating an identical retry."""
+    candidate = ImportantDate.model_validate(entry).model_dump(mode="json")
+    if candidate not in payload["known_dates"]:
+        payload["known_dates"].append(candidate)
+
+
+def _append_map_node(payload: dict[str, Any], entry: dict[str, Any]) -> None:
+    """Append one node while keeping identity and basic placement server-owned."""
+    candidate = dict(entry)
+    candidate["node_id"] = str(MapNodeId.generate())
+    candidate.setdefault("note", "")
+    candidate.setdefault("linked_reference_id", "")
+
+    node_index = len(payload["map_nodes"])
+    candidate.setdefault("x", float(80 + (node_index % 3) * 280))
+    candidate.setdefault("y", float(80 + (node_index // 3) * 160))
+
+    linked_reference_id = candidate["linked_reference_id"]
+    known_reference_ids = {
+        reference["reference_id"] for reference in payload["references"]
+    }
+    if linked_reference_id and linked_reference_id not in known_reference_ids:
+        raise AgentToolInputError(
+            f"Map node links to unknown reference: {linked_reference_id}"
+        )
+    payload["map_nodes"].append(candidate)
+
+
 def _list_matters() -> None:
     summaries = [
         {
@@ -123,6 +166,21 @@ def _create_matter(input_path: Path) -> None:
     _write_json(matter.model_dump_json(indent=2))
 
 
+def _create_oriented_matter(input_path: Path) -> None:
+    orientation = OrientationProfile.model_validate(_load_json(input_path))
+    if (
+        orientation.idea_state is None
+        or orientation.disclosure_state is None
+        or not orientation.objectives
+        or orientation.materials_state is None
+        or orientation.collaboration_style is None
+    ):
+        raise AgentToolInputError("Expected all five orientation answers")
+    matter = create_matter_from_orientation(orientation)
+    _store().save_matter(matter)
+    _write_json(matter.model_dump_json(indent=2))
+
+
 def _apply_patch(raw_matter_id: str, patch_path: Path) -> None:
     store = _store()
     current = store.load_matter(MatterId(raw_matter_id))
@@ -142,6 +200,10 @@ def _apply_patch(raw_matter_id: str, patch_path: Path) -> None:
         _append_reference(payload, entry)
     for entry in patch.get("append_decisions", []):
         _append_decision(payload, entry)
+    for entry in patch.get("append_dates", []):
+        _append_date(payload, entry)
+    for entry in patch.get("append_map_nodes", []):
+        _append_map_node(payload, entry)
 
     payload["updated_at"] = datetime.now(timezone.utc).isoformat()
     updated = MatterDocument.model_validate(payload)
@@ -157,6 +219,8 @@ def build_parser() -> argparse.ArgumentParser:
     show.add_argument("matter_id")
     create = subparsers.add_parser("create")
     create.add_argument("--input", type=Path, required=True)
+    orient = subparsers.add_parser("orient")
+    orient.add_argument("--input", type=Path, required=True)
     apply = subparsers.add_parser("apply")
     apply.add_argument("matter_id")
     apply.add_argument("--patch", type=Path, required=True)
@@ -171,6 +235,8 @@ def main() -> None:
         _show_matter(args.matter_id)
     elif args.command == "create":
         _create_matter(args.input)
+    elif args.command == "orient":
+        _create_oriented_matter(args.input)
     elif args.command == "apply":
         _apply_patch(args.matter_id, args.patch)
 

@@ -4,96 +4,76 @@ from typing import Final
 from imbue.imbue_common.pure import pure
 
 from tomorrowkit.data_types import (
-    HarvestCheckpoint,
+    DisclosureState,
+    IdeaState,
+    MaterialsState,
     MatterDocument,
     MatterId,
     MatterIntake,
+    MatterStage,
+    OrientationObjective,
+    OrientationProfile,
+    WorkflowPhase,
+    build_default_harvest_checkpoints,
 )
 
-_INTAKE_PROMPT: Final[str] = """\
-I am working on a provisional patent record for my invention. Help me run an invention intake interview.
-
-Ask me one question at a time, adapting to my answers. Cover: the problem and who has it; how my \
-invention works, step by step; what makes it different from the obvious way of doing it; every variation \
-or alternative version I have considered; what I have actually built or tested so far; and any public \
-demos, sales, publications, or disclosures I have already made (with dates as best I remember).
-
-Keep my own words. Do not rewrite my descriptions into patent language. Maintain the shared matter \
-record as we work, organized as: problem, mechanism, intended result, alternatives, and open questions."""
-
-_PROSPECTING_PROMPT: Final[str] = """\
-I am building a reference library for my invention's provisional patent record. Help me search for prior \
-art and related work.
-
-Based on my invention brief (included below), suggest search terms and look for: existing patents \
-and patent applications, academic papers, commercial products, and technical standards that are close to \
-my idea. For each thing you find, give me: a title, a citation or stable link, what kind of source it is, \
-one plain-English sentence on how it relates to my invention (does it support my thinking, contradict it, \
-suggest a design-around, or just need verification?), and its date if known.
-
-Mark everything you find as a lead -- I will review and verify entries myself before I rely on them."""
-
-_DRAFTING_PROMPT: Final[str] = """\
-I am developing the disclosure for my invention's provisional patent record. Using my invention brief and \
-invention map (included below), help me make the description complete enough that someone skilled \
-in this field could build the invention.
-
-Walk through each component and step and ask me about anything that is vague: exact mechanisms, ranges, \
-materials, orderings, failure handling, and alternatives. Push me to describe every variation I would not \
-want a competitor to use freely. Flag places where I say 'somehow' or skip a step. Keep the output \
-organized by the sections of my brief, and clearly separate what I told you from what you inferred, so I \
-can review and approve each part."""
-
-_ADVERSARIAL_PROMPT: Final[str] = """\
-Act as a skeptical reviewer of my invention disclosure. My invention brief, map summary, and \
-reference library are included below.
-
-Attack the record: What is missing that a patent attorney would ask for? Which claims of novelty look weak \
-against the references I have collected? Where is the description too vague to support what I care about? \
-What obvious variations have I failed to describe? What evidence am I assuming but not actually holding?
-
-Give me a prioritized list of gaps, each with a plain-English explanation of why it matters and what would \
-close it. Do not soften the review -- I want the problems found now, not after filing."""
-
-_DEFAULT_HARVEST_CHECKPOINTS: Final[tuple[tuple[str, str, str, str], ...]] = (
-    (
-        "intake",
-        "Intake interview",
-        "Get the whole invention out of your head and into the brief, in your own words.",
-        _INTAKE_PROMPT,
-    ),
-    (
-        "prospecting",
-        "Prior-art prospecting",
-        "Search for patents, papers, and products near your idea and grow the reference library.",
-        _PROSPECTING_PROMPT,
-    ),
-    (
-        "drafting",
-        "Disclosure drafting",
-        "Deepen the description until someone skilled in the field could build it.",
-        _DRAFTING_PROMPT,
-    ),
-    (
-        "adversarial",
-        "Adversarial review",
-        "Have your agent attack the record and list the gaps before they become problems.",
-        _ADVERSARIAL_PROMPT,
-    ),
-)
+_OBJECTIVE_GOALS: Final[dict[OrientationObjective, str]] = {
+    OrientationObjective.PROTECT_PRODUCT: "Protect a product or service",
+    OrientationObjective.LICENSE_OR_PARTNER: "Prepare for licensing or partnership",
+    OrientationObjective.ENCIRCLE_OR_BLOCK: "Build defensive patent terrain",
+    OrientationObjective.FUNDRAISE_OR_ACQUIRE: "Support fundraising or acquisition",
+    OrientationObjective.BANK_OPTIONALITY: "Preserve future options",
+    OrientationObjective.PUBLISH_OR_PUBLIC_BENEFIT: "Prepare for publication or public benefit",
+    OrientationObjective.UNDERSTAND_OPTIONS: "Understand the available patent options",
+}
 
 
 @pure
-def build_default_harvest_checkpoints() -> tuple[HarvestCheckpoint, ...]:
-    return tuple(
-        HarvestCheckpoint(
-            checkpoint_id=checkpoint_id,
-            name=name,
-            purpose=purpose,
-            agent_prompt=agent_prompt,
-        )
-        for checkpoint_id, name, purpose, agent_prompt in _DEFAULT_HARVEST_CHECKPOINTS
+def derive_stage_from_orientation(orientation: OrientationProfile) -> MatterStage:
+    """Map the quiz's state choices onto the legacy matter-stage vocabulary."""
+    if orientation.idea_state is IdeaState.FILED:
+        return MatterStage.FILED_PROVISIONAL
+    if (
+        orientation.idea_state
+        in {
+            IdeaState.WRITTEN_OR_BUILT,
+            IdeaState.DRAFT_PROVISIONAL,
+        }
+        or orientation.materials_state is MaterialsState.DRAFT_OR_FILING
+    ):
+        return MatterStage.DRAFT_READY
+    return MatterStage.EARLY_IDEA
+
+
+@pure
+def derive_goal_from_orientation(orientation: OrientationProfile) -> str:
+    """Render the selected objectives as a concise matter goal."""
+    if not orientation.objectives:
+        return "Understand the invention and choose the right next step"
+    return "; ".join(
+        _OBJECTIVE_GOALS[objective] for objective in orientation.objectives
     )
+
+
+@pure
+def derive_next_action_from_orientation(orientation: OrientationProfile) -> str:
+    """Choose the source-lock instruction most relevant to the quiz answers."""
+    if (
+        orientation.idea_state is IdeaState.FILED
+        or orientation.materials_state is MaterialsState.DRAFT_OR_FILING
+    ):
+        return "Gather the draft or filing and lock the source record before developing it further."
+    if orientation.disclosure_state in {
+        DisclosureState.MAYBE_PUBLIC,
+        DisclosureState.PUBLIC_OR_COMMERCIAL,
+    }:
+        return "Record the disclosure timeline and lock the source materials that existed before it."
+    if orientation.materials_state in {
+        MaterialsState.NOTES_OR_SKETCHES,
+        MaterialsState.TECHNICAL_MATERIALS,
+    }:
+        return "Gather the existing invention materials and lock them as the starting source record."
+    return "Capture what existed before this conversation and lock it as the starting source record."
 
 
 def create_matter_from_intake(intake: MatterIntake) -> MatterDocument:
@@ -108,5 +88,22 @@ def create_matter_from_intake(intake: MatterIntake) -> MatterDocument:
         goal=intake.goal,
         theme=intake.theme,
         known_dates=intake.known_dates,
+        harvest=build_default_harvest_checkpoints(),
+    )
+
+
+def create_matter_from_orientation(orientation: OrientationProfile) -> MatterDocument:
+    """Create the conversational workspace produced by the orientation quiz."""
+    now = datetime.now(timezone.utc)
+    return MatterDocument(
+        matter_id=MatterId.generate(),
+        created_at=now,
+        updated_at=now,
+        title="Untitled invention",
+        stage=derive_stage_from_orientation(orientation),
+        goal=derive_goal_from_orientation(orientation),
+        orientation=orientation,
+        workflow_phase=WorkflowPhase.SOURCE_LOCK,
+        next_action=derive_next_action_from_orientation(orientation),
         harvest=build_default_harvest_checkpoints(),
     )

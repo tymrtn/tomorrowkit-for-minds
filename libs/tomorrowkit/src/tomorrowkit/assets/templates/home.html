@@ -3,272 +3,95 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tomorrowkit — Provisional Workspace</title>
+<title>Tomorrowkit - Start with your invention</title>
 <link rel="icon" href="static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="static/styles.css">
 </head>
 <body>
-<div class="home-wrap">
-
-  <header class="sheet hero-sheet" style="position: relative;">
-    <div class="hero">
-      <span class="stamp">Provisional stage</span>
-      <p class="eyebrow">Tomorrowkit &mdash; Orientation &amp; Provisional Workspace</p>
-      <h1>One invention, one workspace.</h1>
-      <p class="lede">
-        Take a rough idea and grow it into an organized, evidence-aware record for a
-        provisional patent application &mdash; kept on your own machine, developed with the
-        AI you already trust, written in your own words.
-      </p>
-      <div class="hero-actions">
-        <a class="btn primary" href="#create">Create my invention workspace</a>
-        <a class="btn quiet" href="#orientation">Read the orientation first</a>
-      </div>
-    </div>
-    <div class="titleblock">
-      <div style="flex:2;"><span class="tb-label">Workspace</span><span class="tb-value">TOMORROWKIT / PROVISIONAL</span></div>
-      <div><span class="tb-label">Scope</span><span class="tb-value">ONE INVENTOR &middot; ONE MATTER</span></div>
-      <div><span class="tb-label">Storage</span><span class="tb-value">LOCAL-FIRST</span></div>
-    </div>
-  </header>
-
+<main class="orientation-wrap">
   {% if matters %}
-  <section class="section" aria-label="Your matters">
-    <h2>Your matters</h2>
-    <div class="matter-list">
+  <section class="resume-strip" aria-labelledby="resume-heading">
+    <div>
+      <p class="eyebrow">Your invention workspace</p>
+      <h2 id="resume-heading">Pick up where you left off.</h2>
+    </div>
+    <div class="resume-list">
       {% for m in matters %}
-      <a class="matter-card" href="matter/{{ m.matter_id }}">
-        <span class="mc-title">{{ m.title }}</span>
-        <span class="stamp small">{{ m.stage.value.replace('_', ' ') }}</span>
-        <span class="mc-meta mono">saved {{ m.updated_at.date().isoformat() }}</span>
+      <a class="resume-card" href="matter/{{ m.matter_id }}">
+        <span>
+          <strong>{{ m.title }}</strong>
+          <small>Last updated {{ m.updated_at.date().isoformat() }}</small>
+        </span>
+        <span class="resume-action">Continue</span>
       </a>
       {% endfor %}
     </div>
   </section>
   {% endif %}
 
-  <section class="section" id="orientation">
-    <h2>What a patent is trying to do</h2>
-    <p>
-      A patent can protect a specific piece of technical territory: a claimed invention
-      that the application describes and enables. In exchange for teaching the public how
-      the invention works, an issued patent may provide a limited right to exclude others
-      from practicing the claimed territory.
-    </p>
-    <p>
-      What matters early is not polished legal writing. It is <em>evidence and dates</em>:
-      a complete, honest description of what you invented, when you had it, and what was
-      already out in the world. That record is what this workspace helps you build.
-    </p>
-  </section>
+  <section class="orientation-shell" aria-labelledby="orientation-title">
+    <header class="orientation-intro">
+      <div>
+        <p class="eyebrow">Tomorrowkit orientation</p>
+        <h1 id="orientation-title">Start with where the invention is today.</h1>
+        <p class="lede">
+          Five quick choices give Tomorrowkit enough context to ask a useful first
+          question. Each answer explains the patent concept that makes it matter.
+        </p>
+      </div>
+      <div class="orientation-mark" aria-hidden="true">
+        <span>Private workspace</span>
+        <span>About two minutes</span>
+      </div>
+    </header>
 
-  <section class="section">
-    <h2>From idea to application</h2>
-    <p>These are different things, and the order matters. Each one builds on the record of the one before it.</p>
-    <ol class="journey">
-      <li>
-        <span class="j-name">Idea</span>
-        <p class="j-desc">A direction in your head. Not yet protectable &mdash; but worth capturing before it fades or leaks.</p>
-      </li>
-      <li>
-        <span class="j-name">Invention disclosure</span>
-        <p class="j-desc">A written account of the problem, how your invention works, and what makes it different. Complete enough that someone skilled in your field could follow it.</p>
-      </li>
-      <li>
-        <span class="j-name">Provisional application</span>
-        <p class="j-desc">A temporary, unexamined filing that can establish an early priority date for subject matter it adequately describes. A later application generally must claim its benefit within twelve months.</p>
-      </li>
-      <li>
-        <span class="j-name">Examined application</span>
-        <p class="j-desc">A later non-provisional or international application with formal claims. A claim receives the provisional's earlier date only to the extent the provisional supports it.</p>
-      </li>
-    </ol>
-  </section>
+    <div class="quiz-shell" id="orientation-quiz" aria-live="polite">
+      <div class="quiz-progress" aria-label="Orientation progress">
+        <span class="quiz-progress-copy" id="quiz-progress-copy">Question 1 of 5</span>
+        <div class="quiz-progress-track" aria-hidden="true">
+          <span id="quiz-progress-bar"></span>
+        </div>
+      </div>
 
-  <section class="section">
-    <h2>Words you will meet</h2>
-    <dl class="vocab">
-      <div><dt>Priority date</dt><dd>The earliest effective filing date a claim may be entitled to. Whether a reference counts as prior art depends on the claim, the disclosure, and applicable law.</dd></div>
-      <div><dt>Disclosure</dt><dd>What the application actually teaches in writing and drawings. Later claims need adequate support in that record.</dd></div>
-      <div><dt>Claims</dt><dd>The numbered sentences in a later application that define the exact boundary of protection. Provisionals don't require them.</dd></div>
-      <div><dt>Provisional application</dt><dd>A temporary, unexamined filing that can establish an early priority date for adequately described subject matter.</dd></div>
-      <div><dt>Non-provisional application</dt><dd>A later application that can be examined. To claim a provisional's benefit, it generally must be filed within twelve months.</dd></div>
-      <div><dt>PCT</dt><dd>An international route that keeps foreign filing options open from a single application.</dd></div>
-      <div><dt>New matter</dt><dd>Anything you add after filing. It doesn't get the earlier date &mdash; which is why completeness now beats polish later.</dd></div>
-    </dl>
-  </section>
+      <section class="quiz-question" id="quiz-question" tabindex="-1"></section>
 
-  <section class="section">
-    <h2>How this workspace is laid out</h2>
-    <p>
-      Each invention gets one matter workspace with connected areas. You and your AI fill
-      them together; every artifact exists to make the next decision easier.
-    </p>
-    <div class="areas">
-      <div class="area-card"><h3>Matter home</h3><p>Where things stand: current stage, what's known, what's uncertain, and the next action.</p></div>
-      <div class="area-card"><h3>Invention brief</h3><p>The evolving account of the problem, mechanism, result, alternatives, and open questions &mdash; in your words.</p></div>
-      <div class="area-card"><h3>Harvesting room</h3><p>Guided sessions with your own AI to pull the full invention out of your head, checkpoint by checkpoint.</p></div>
-      <div class="area-card"><h3>Invention map</h3><p>A visual canvas of components, steps, alternatives, and open questions. For thinking &mdash; not a formal patent drawing.</p></div>
-      <div class="area-card"><h3>Reference library</h3><p>Prior art, papers, products, and leads &mdash; organized, tagged, and marked by how far each has been verified.</p></div>
-      <div class="area-card"><h3>Decision ledger</h3><p>The important calls you make, and why. Six months from now you'll be glad it's written down.</p></div>
-      <div class="area-card"><h3>Scorecard</h3><p>Two separate lenses on readiness &mdash; the value of the terrain, and how well the record captures it.</p></div>
-      <div class="area-card"><h3>Export</h3><p>A portable package of everything above. Yours to keep or hand to counsel.</p></div>
+      <div class="quiz-actions">
+        <button type="button" class="btn quiet" id="quiz-back" hidden>Back</button>
+        <span class="quiz-selection-note" id="quiz-selection-note"></span>
+        <button type="button" class="btn primary" id="quiz-next" disabled>Continue</button>
+      </div>
+      <p class="form-error" id="quiz-error" role="alert"></p>
     </div>
+
+    <section class="orientation-result" id="orientation-result" hidden aria-labelledby="result-title" tabindex="-1">
+      <p class="eyebrow">Your starting point</p>
+      <h2 id="result-title"></h2>
+      <p class="result-summary" id="result-summary"></p>
+      <div class="result-grid" id="result-grid"></div>
+      <div class="result-boundary">
+        <strong>What happens next</strong>
+        <p>
+          Tomorrowkit creates a private matter record, reads these choices, and
+          continues in the Mind conversation beside this workspace. It does not
+          file an application or make legal conclusions.
+        </p>
+      </div>
+      <div class="result-actions">
+        <button type="button" class="btn quiet" id="result-back">Review my answers</button>
+        <button type="button" class="btn primary" id="create-workspace">Create my workspace</button>
+      </div>
+      <p class="form-error" id="create-error" role="alert"></p>
+    </section>
   </section>
 
-  <section class="section">
-    <h2>Your role when working with AI</h2>
+  <footer class="orientation-foot">
     <p>
-      AI is a strong drafting partner and a tireless researcher, but the inventor is you.
-      On anything important, your job has four verbs: <strong>understand</strong> what was
-      produced, <strong>select</strong> what belongs in the record, <strong>modify</strong>
-      what isn't quite right, and <strong>approve</strong> it explicitly. The decision
-      ledger exists to capture those approvals.
+      Matter records stay in this Mind and remain exportable. Tomorrowkit organizes
+      an inventor-controlled working record; it is not legal advice.
     </p>
-  </section>
+  </footer>
+</main>
 
-  <section class="section">
-    <h2>Three moments that matter</h2>
-    <div class="moments">
-      <div class="moment">
-        <span class="eyebrow">Moment one</span>
-        <h3>Before telling the world</h3>
-        <p>Public demos, launches, papers, and pitches can start unforgiving clocks &mdash; and in much of the world, end your options. Capture and consider filing first.</p>
-      </div>
-      <div class="moment">
-        <span class="eyebrow">Moment two</span>
-        <h3>Before filing the provisional</h3>
-        <p>A later claim receives the provisional's earlier date only for subject matter the provisional adequately supports. This is the moment to make the record complete, not pretty.</p>
-      </div>
-      <div class="moment">
-        <span class="eyebrow">Moment three</span>
-        <h3>Before the conversion decision</h3>
-        <p>Around month twelve you decide whether to file a later application claiming the provisional's benefit. A well-kept matter record makes that a business decision instead of a scramble.</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <h2>Working privately</h2>
-    <div class="quiet-box">
-      <p>Your matter lives in files on this machine. Nothing is published or sent anywhere unless you export it and share it yourself.</p>
-      <p>Use an AI account you're comfortable using for sensitive work, and where your provider offers a setting to keep your conversations out of model training, turn it on.</p>
-      <p>Connect only the sources that actually help this invention. More access isn't more progress.</p>
-    </div>
-  </section>
-
-  <section class="sheet intake" id="create">
-    <p class="eyebrow">New matter</p>
-    <h2>Create your invention workspace</h2>
-    <p class="hint">A few minutes now creates the starting point. Everything here can be changed later &mdash; and the deeper interview happens in the harvesting room, with your own AI.</p>
-
-    <form id="intake-form">
-      <label class="field" for="in-title">Working title</label>
-      <input type="text" id="in-title" name="title" required maxlength="200" placeholder="e.g. Self-sealing irrigation coupler">
-
-      <label class="field" for="in-problem">The problem, and your approach</label>
-      <p class="hint">A short paragraph is plenty. What's broken, and what's your angle on fixing it?</p>
-      <textarea id="in-problem" name="problem_summary"></textarea>
-
-      <label class="field" for="in-stage">Where things stand today</label>
-      <select id="in-stage" name="stage">
-        <option value="EARLY_IDEA">Early idea &mdash; still mostly in my head</option>
-        <option value="DRAFT_READY">Draft-ready &mdash; I could describe it fully now</option>
-        <option value="FILED_PROVISIONAL">Filed provisional &mdash; already have a filing</option>
-        <option value="EXISTING_APPLICATION">Existing application &mdash; further along</option>
-      </select>
-
-      <label class="field">Important dates, if you know any</label>
-      <p class="hint">Demos, publications, sales, filings &mdash; anything already public or already filed. Leave empty if none.</p>
-      <div id="date-rows"></div>
-      <button type="button" class="btn tiny" id="add-date">Add a date</button>
-
-      <label class="field" for="in-goal">What you want out of the next few weeks</label>
-      <input type="text" id="in-goal" name="goal" placeholder="e.g. A provisional filed before our March demo">
-
-      <label class="field" for="in-theme">Workspace accent <span style="text-transform:none; letter-spacing:0; font-weight:500;">(optional)</span></label>
-      <p class="hint">Tints your matter workspace so it feels like yours. You can change it any time.</p>
-      <select id="in-theme" name="theme">
-        <option value="">Drafting blue (default)</option>
-        <option value="field-green">Field green</option>
-        <option value="kiln-amber">Kiln amber</option>
-        <option value="ink-violet">Ink violet</option>
-        <option value="harbor-teal">Harbor teal</option>
-      </select>
-
-      <div class="intake-actions">
-        <button type="submit" class="btn primary">Create workspace</button>
-        <span class="form-error" id="intake-error" role="alert"></span>
-      </div>
-    </form>
-  </section>
-
-  <p class="footnote">
-    Tomorrowkit organizes your invention record and teaches you the terrain. It does not
-    file applications, produce formal patent drawings, or give legal advice. A qualified
-    patent professional can be valuable when the stakes warrant it.
-  </p>
-</div>
-
-<script>
-(function () {
-  var dateRows = document.getElementById("date-rows");
-  var addDateButton = document.getElementById("add-date");
-  var form = document.getElementById("intake-form");
-  var errorEl = document.getElementById("intake-error");
-
-  function addDateRow() {
-    var row = document.createElement("div");
-    row.className = "date-row";
-    row.innerHTML =
-      '<input type="text" placeholder="What happened (e.g. demo at trade show)" data-role="label">' +
-      '<input type="text" placeholder="When (e.g. 2025-11-02)" data-role="date">' +
-      '<input type="text" placeholder="Note (optional)" data-role="note">' +
-      '<button type="button" class="btn tiny" data-role="remove">Remove</button>';
-    row.querySelector('[data-role="remove"]').addEventListener("click", function () { row.remove(); });
-    dateRows.appendChild(row);
-  }
-  addDateButton.addEventListener("click", addDateRow);
-
-  form.addEventListener("submit", function (event) {
-    event.preventDefault();
-    errorEl.textContent = "";
-    var title = document.getElementById("in-title").value.trim();
-    if (!title) {
-      errorEl.textContent = "A working title is needed to create the workspace.";
-      return;
-    }
-    var knownDates = [];
-    dateRows.querySelectorAll(".date-row").forEach(function (row) {
-      var label = row.querySelector('[data-role="label"]').value.trim();
-      var dateText = row.querySelector('[data-role="date"]').value.trim();
-      var note = row.querySelector('[data-role="note"]').value.trim();
-      if (label || dateText) {
-        knownDates.push({ label: label || "Date", date_text: dateText, note: note });
-      }
-    });
-    var payload = {
-      title: title,
-      problem_summary: document.getElementById("in-problem").value,
-      stage: document.getElementById("in-stage").value,
-      goal: document.getElementById("in-goal").value.trim(),
-      theme: document.getElementById("in-theme").value.trim(),
-      known_dates: knownDates
-    };
-    fetch("api/matters", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    }).then(function (response) {
-      if (!response.ok) { throw new Error("create failed (" + response.status + ")"); }
-      return response.json();
-    }).then(function (matter) {
-      window.location.href = "matter/" + matter.matter_id;
-    }).catch(function () {
-      errorEl.textContent = "The workspace couldn't be created. Check the title and try again.";
-    });
-  });
-})();
-</script>
+<script src="static/onboarding.js"></script>
 </body>
 </html>
