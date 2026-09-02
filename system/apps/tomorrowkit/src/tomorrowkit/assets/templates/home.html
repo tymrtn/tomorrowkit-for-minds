@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tomorrowkit - Start with your invention</title>
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="static/styles.css">
+</head>
+<body>
+<main class="orientation-wrap">
+  {% if matters %}
+  <section class="resume-strip" aria-labelledby="resume-heading">
+    <div>
+      <p class="eyebrow">Your invention workspace</p>
+      <h2 id="resume-heading">Pick up where you left off.</h2>
+    </div>
+    <div class="resume-list">
+      {% for m in matters %}
+      <a class="resume-card" href="matter/{{ m.matter_id }}">
+        <span>
+          <strong>{{ m.title }}</strong>
+          <small>Last updated {{ m.updated_at.date().isoformat() }}</small>
+        </span>
+        <span class="resume-action">Continue</span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="orientation-shell" aria-labelledby="orientation-title">
+    <header class="orientation-intro">
+      <div>
+        <p class="eyebrow">Tomorrowkit orientation</p>
+        <h1 id="orientation-title">Start with where the invention is today.</h1>
+        <p class="lede">
+          Five quick choices give Tomorrowkit enough context to ask a useful first
+          question. Each answer explains the patent concept that makes it matter.
+        </p>
+      </div>
+      <div class="orientation-mark" aria-hidden="true">
+        <span>Private workspace</span>
+        <span>About two minutes</span>
+      </div>
+    </header>
+
+    <div class="quiz-shell" id="orientation-quiz" aria-live="polite">
+      <div class="quiz-progress" aria-label="Orientation progress">
+        <span class="quiz-progress-copy" id="quiz-progress-copy">Question 1 of 5</span>
+        <div class="quiz-progress-track" aria-hidden="true">
+          <span id="quiz-progress-bar"></span>
+        </div>
+      </div>
+
+      <section class="quiz-question" id="quiz-question" tabindex="-1"></section>
+
+      <div class="quiz-actions">
+        <button type="button" class="btn quiet" id="quiz-back" hidden>Back</button>
+        <span class="quiz-selection-note" id="quiz-selection-note"></span>
+        <button type="button" class="btn primary" id="quiz-next" disabled>Continue</button>
+      </div>
+      <p class="form-error" id="quiz-error" role="alert"></p>
+    </div>
+
+    <section class="orientation-result" id="orientation-result" hidden aria-labelledby="result-title" tabindex="-1">
+      <p class="eyebrow">Your starting point</p>
+      <h2 id="result-title"></h2>
+      <p class="result-summary" id="result-summary"></p>
+      <div class="result-grid" id="result-grid"></div>
+      <div class="result-boundary">
+        <strong>What happens next</strong>
+        <p>
+          Tomorrowkit creates a private matter record, reads these choices, and
+          continues in the Mind conversation beside this workspace. It does not
+          file an application or make legal conclusions.
+        </p>
+      </div>
+      <div class="result-actions">
+        <button type="button" class="btn quiet" id="result-back">Review my answers</button>
+        <button type="button" class="btn primary" id="create-workspace">Create my workspace</button>
+      </div>
+      <p class="form-error" id="create-error" role="alert"></p>
+    </section>
+  </section>
+
+  <footer class="orientation-foot">
+    <p>
+      Matter records stay in this Mind and remain exportable. Tomorrowkit organizes
+      an inventor-controlled working record; it is not legal advice.
+    </p>
+  </footer>
+</main>
+
+<script src="static/onboarding.js"></script>
+    <script>if (window.parent !== window) window.parent.postMessage({type: "minds-location", path: location.pathname + location.search}, "*");</script>
+</body>
+</html>

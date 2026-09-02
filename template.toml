@@ -1,0 +1,73 @@
+# Machine-readable manifest for this template. The sibling
+# template.md holds the prose, the Requirements list, and the two
+# append-only history logs; this file is authoritative for everything
+# below. Both are generated together -- validate_template.py fails if
+# they disagree.
+format = "v2"
+
+[template]
+slug = "tomorrowkit"
+title = "Tomorrowkit"
+description = "A private, conversational invention workspace: the Mind interviews a solo inventor and keeps a source-aware provisional-patent record beside the chat"
+thumbnail = "template.svg"
+version = "v2"
+
+# How this template is DERIVED from the workspace it came from. An
+# update re-runs this recipe rather than diffing two repos, which is what
+# keeps an exclusion excluded even though the thing still exists upstream.
+[recipe]
+include = [
+    "system/apps/tomorrowkit",
+    ".agents/skills/tomorrowkit-provisional",
+]
+data_include = []
+exclude = []
+# The clean base does not ship Tomorrowkit wired in, so the snapshot adds the
+# app's own wiring back and carries the Tomorrowkit-layer documents at the
+# repo root. Stated as rules so an update replays them.
+modification_rules = [
+    "Add the tomorrowkit supervisord program (system/supervisord.conf) and the tomorrowkit pyproject dependency and workspace source, since the clean base does not ship the app wired in.",
+    "Ship LICENSE.md, SECURITY.md, THIRD_PARTY_NOTICES.md, licenses/OFL-1.1.txt, and docs/images/ at the repo root; they document the Tomorrowkit layer, not the workspace base.",
+]
+
+# Everything an adopter must deal with before this is really theirs.
+# Tomorrowkit needs no external permission, secret, or model wiring: the
+# Mind's own configured agent runs the interview, and the record service is a
+# local Flask app over plaintext JSON under data/.apps/tomorrowkit/.
+[requirements]
+
+[[requirements.adaptation]]
+summary = "The listen port 8090 is set in two places that must agree: the forward_port.py --url in the [program:tomorrowkit] supervisord block, and the TOMORROWKIT_PORT default in system/apps/tomorrowkit/src/tomorrowkit/runner.py."
+resolution = "An adopter who needs a different port changes both, or sets TOMORROWKIT_PORT in the supervisord command and updates the --url to match."
+
+[[requirements.adaptation]]
+summary = "Matter records are plaintext JSON under data/.apps/tomorrowkit/ and follow the workspace's normal persistence and backup behaviour; exported ZIPs contain the same confidential material."
+resolution = "An adopter working on a sensitive invention confirms the workspace's backup and privacy posture, uses a model account with training opt-outs enabled, and connects only the research tools they choose. Nothing in the app calls an AI provider or an external API."
+
+[[requirements.adaptation]]
+summary = "The record service's home page still carries the original five-question orientation form as a secondary path. The conversation is the primary path: the tomorrowkit-provisional skill creates and updates the matter from chat and never sends the user to that form."
+resolution = "An adopter who wants the form gone removes the orientation pane from assets/templates/home.html and assets/static/onboarding.js and keeps the resume card; the /api/orientation route can go with it."
+
+[[requirements.adaptation]]
+summary = "The seed portfolio and the provisional disclosure posture are recorded as free text (brief.alternatives, brief.open_questions, and Decision Ledger entries) rather than as structured fields, so they cannot be rendered side by side or queried."
+resolution = "An adopter who wants them queryable adds a Seed model (label, mechanism, status, provenance) and a posture field to data_types.py, exposes them through the patch paths in agent_tools.py, and renders them in matter.html."
+
+[[requirements.adaptation]]
+summary = "The interview and record scoring run on the one agent configured for the Mind. The template does not include the multi-model attack and landscape roles the wider Provisionally Tomorrow Kit uses, and must not be presented as an independent council."
+resolution = "An adopter who wants adversarial review from a second model wires it through the workspace's normal AI integrations and records its output in the Reference Library as generated material, never as inventor source."
+
+# What the included code needs INSTALLED beyond the stock template. Nothing:
+# the app is pure Python on the workspace's pinned toolchain, and the fonts it
+# serves ship inside the package.
+[environment]
+apt = []
+env_d_units = []
+
+# The predecessor this template supersedes: the original publish in the v1
+# "inspiration" format, at the same repo. Recorded so that older state stays
+# retrievable by fetching that repo at that commit (also tagged v1-inspiration).
+[[lineage]]
+slug = "tomorrowkit"
+repo_url = "https://github.com/tymrtn/tomorrowkit-for-minds"
+commit = "39a3b74330db8448afedfa3f673d0c79d92c19bb"
+used_on = 2026-09-01

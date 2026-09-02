@@ -1,45 +1,55 @@
 ---
 name: welcome
-description: Greet the user with a short, friendly welcome message when a new project/agent is first started. Invoked automatically as the first message from the minds desktop client.
-metadata:
-  author: imbue
+description: Greet the user when a new project starts. This mind was created from the Tomorrowkit template, so the welcome introduces that template and immediately starts the invention conversation.
 ---
 
-# Welcome the user
+# Welcome the user (template: Tomorrowkit)
 
-This skill has two parts: the opening greeting you always send first, and a list of suggestions you offer only if the user asks for ideas.
+This mind was created from a template -- a published snapshot of apps
+another mind built:
 
-## Opening message
+- Title: Tomorrowkit
+- Slug: `tomorrowkit`
+- Description: A private, conversational invention workspace: the Mind
+  interviews a solo inventor and keeps a source-aware provisional-patent
+  record beside the chat
+- Manifest: `template.md` (at the repo root, with `template.toml` beside it)
 
-Output the following welcome message to the user, verbatim, as your entire response. Do NOT call any tools, do NOT look at the codebase, and do NOT add anything else:
+Do ALL of the following in your FIRST response, in the same turn, without
+waiting to be asked:
 
----
+1. Open with a short CUSTOM welcome that names **Tomorrowkit** and gives the
+   one-line description above. Do NOT use a generic "Welcome to Minds"
+   greeting and do NOT offer a generic suggestions list.
+2. Immediately read `template.md` at the repo root (reading the manifest in
+   the first turn is required), then read
+   `.agents/skills/tomorrowkit-provisional/SKILL.md` in full.
+3. Tomorrowkit has no activation requirements: nothing to connect, no keys,
+   nothing leaves the Mind. Say that in one sentence, then start the product.
+   Run `uv run tomorrowkit-workspace list`. If a matter exists, read it with
+   `uv run tomorrowkit-workspace show <matter_id>`, open the record beside the
+   chat with `python3 system/scripts/layout.py open tomorrowkit`, give a
+   one-sentence recap of where the work stopped, and ask the single next
+   useful question for its workflow state. If no matter exists, welcome the
+   inventor in one sentence and ask question one of the triage quiz:
 
-### Welcome to Minds
+   **"Where is this invention today: mostly in your head, captured in notes or
+   a build, in a draft provisional, or already filed?"**
 
-I'm an AI operating system built to extend *you* — so you can do your best work.
+   If the user's opening message already answers one or more triage
+   categories, record those answers instead of repeating the question. End
+   your first response on that question. The `tomorrowkit-provisional` skill
+   owns every later turn, record update, and human decision gate: after the
+   first answered category it creates the matter and opens the tab. Do not
+   send a patent-law lesson, a multi-field intake, a suggestions menu, or a
+   prompt for the user to copy, and do not ask several questions in one
+   message.
 
-I can take on tasks for you, build custom apps and skills you can easily edit, connect to the tools you already use to pull in information, or just brainstorm ways to make your work better.
+The manifest's "How to adapt it" section is the full script for anything
+beyond the first run. Work through its adaptation bullets only after a matter
+exists and only if the user asks.
 
-**Let's get started**
-
-Already have something in mind? Tell me what you'd like to work on below. If not, I'm happy to suggest a few ways to get started.
-
----
-
-That is the entire opening message. Stop after printing it.
-
-## If the user asks for suggestions
-
-After the opening message the user replies. If their reply asks for suggestions, says they're not sure, or otherwise signals they don't have something specific in mind, output the following message to the user, verbatim, and nothing else. (If instead they describe something they want to do, ignore this section and help them with that directly.)
-
----
-
-Here are some popular ways people get started with Minds. Pick whichever fits, and we can build on it as a starting point.
-
-1. **Unify your email & messages:** Bring every conversation into one place and respond from there.
-2. **Organize your tasks:** Build a system to track what you need to do and get it done.
-3. **Track your team's work:** A dashboard for everything across GitHub, Linear, Slack, and email.
-4. **Keep up with what you care about:** Stay current on the products, events, or news that matter to you.
-
----
+This repo holds exactly one template. If `template.toml` lists `[[lineage]]`
+entries, those are the templates this one was built on -- each with the repo
+URL and commit it was taken at, so you can go read any of them at the exact
+state that was used. They are provenance, not something to adapt here.
