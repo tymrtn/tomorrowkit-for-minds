@@ -24,11 +24,20 @@
         <li><button data-pane="home">Review record</button></li>
         <li><button data-pane="brief">Invention brief</button></li>
         <li><button data-pane="map">Invention map <span class="count" id="count-map"></span></button></li>
+        <li><button data-pane="seeds">Seed portfolio <span class="count" id="count-seeds"></span></button></li>
         <li><button data-pane="library">Reference library <span class="count" id="count-library"></span></button></li>
         <li><button data-pane="ledger">Decision ledger <span class="count" id="count-ledger"></span></button></li>
         <li><button data-pane="scorecard">Scorecard</button></li>
         <li><button data-pane="export">Export &amp; handoff</button></li>
       </ul>
+      <div class="ask-bar" id="ask-bar">
+        <label class="field" for="ask-text">Ask the agent</label>
+        <div class="ask-bar-row">
+          <input type="text" id="ask-text" maxlength="600" placeholder="e.g. what's the closest art to seed B?">
+          <button type="button" class="btn" id="ask-send">Send to chat</button>
+        </div>
+        <div class="ask-status" id="ask-status" role="status"></div>
+      </div>
       <div class="side-foot">
         <div class="save-status" id="save-status">Loaded</div>
         <a href="./">&larr; All matters</a>
@@ -66,6 +75,11 @@
           <strong>Continue in the Mind conversation beside this workspace.</strong>
           <span>Tomorrowkit reads this record before it asks the next question and writes back only approved changes.</span>
         </div>
+        <div class="ask-row" aria-label="Steer the conversation">
+          <button type="button" class="btn ask" data-ask="quiz">Run a quick orientation quiz</button>
+          <button type="button" class="btn ask" data-ask="next">Ask what's next</button>
+          <button type="button" class="btn ask" data-ask="seeds">Look for more seeds</button>
+        </div>
       </section>
 
       <section class="workflow-card" aria-labelledby="workflow-heading">
@@ -101,6 +115,12 @@
           <button type="button" class="text-action" data-open-pane="home">Review or correct the record</button>
         </div>
         <div class="artifact-grid">
+          <button type="button" class="artifact-preview" data-open-pane="seeds">
+            <span class="artifact-code">SEEDS</span>
+            <strong>Seed portfolio</strong>
+            <span>Distinct mechanisms worth protecting, with your dispositions and routes.</span>
+            <small id="artifact-seed-count"></small>
+          </button>
           <button type="button" class="artifact-preview" data-open-pane="brief">
             <span class="artifact-code">BRIEF</span>
             <strong>Invention brief</strong>
@@ -297,6 +317,133 @@
       </div>
     </section>
 
+    <!-- ============ SEED PORTFOLIO ============ -->
+    <section class="pane" id="pane-seeds">
+      <div class="pane-head">
+        <h2>Seed portfolio</h2>
+        <p class="pane-sub">
+          Each distinct technical seed the conversation has surfaced, side by side: who
+          proposed it, what you decided, where it is routed, and what the closest art
+          looks like. Model proposals stay proposals until you act on them, in chat or here.
+        </p>
+      </div>
+
+      <div class="list-toolbar">
+        <button type="button" class="btn ask" data-ask="seeds">Ask for more seeds</button>
+        <button type="button" class="btn ask" data-ask="assay">Assay the accepted seeds</button>
+        <span class="spacer"></span>
+        <button class="btn" id="seed-add">Add a seed</button>
+      </div>
+
+      <div class="card" id="seed-editor" hidden>
+        <h3 id="seed-editor-title">New seed</h3>
+        <div class="two-col">
+          <div>
+            <label class="field" for="se-label">Seed</label>
+            <input type="text" id="se-label" maxlength="200" placeholder="e.g. Pressure-energised lip">
+          </div>
+          <div>
+            <label class="field" for="se-origin">Proposed by</label>
+            <select id="se-origin">
+              <option value="INVENTOR">The inventor</option>
+              <option value="MODEL">The model</option>
+            </select>
+          </div>
+        </div>
+        <label class="field" for="se-mechanism">Mechanism, in your words</label>
+        <textarea id="se-mechanism" rows="3"></textarea>
+        <div class="two-col">
+          <div>
+            <label class="field" for="se-status">Your disposition</label>
+            <select id="se-status">
+              <option value="PROPOSED">Proposed</option>
+              <option value="ACCEPTED">Accepted</option>
+              <option value="EDITED">Accepted with edits</option>
+              <option value="REJECTED">Rejected</option>
+              <option value="DEFERRED">Deferred</option>
+            </select>
+          </div>
+          <div>
+            <label class="field" for="se-route">Route</label>
+            <select id="se-route">
+              <option value="">Not routed yet</option>
+              <option value="STANDALONE">Standalone filing</option>
+              <option value="COMBINE">Combine with another seed</option>
+              <option value="LATER_FILING">Later filing</option>
+              <option value="DEFER">Defer</option>
+              <option value="NO_FILE">No filing</option>
+            </select>
+          </div>
+        </div>
+        <div class="two-col">
+          <div>
+            <label class="field" for="se-art">Closest art</label>
+            <textarea id="se-art" rows="2"></textarea>
+          </div>
+          <div>
+            <label class="field" for="se-around">Likely design-arounds</label>
+            <textarea id="se-around" rows="2"></textarea>
+          </div>
+        </div>
+        <label class="field" for="se-evidence">Evidence so far</label>
+        <textarea id="se-evidence" rows="2"></textarea>
+        <div class="intake-actions">
+          <button class="btn primary" id="se-save">Save seed</button>
+          <button class="btn quiet" id="se-cancel">Cancel</button>
+          <span class="form-error" id="se-error" role="alert"></span>
+        </div>
+      </div>
+
+      <div class="seed-grid" id="seed-grid"></div>
+
+      <div class="card" id="posture-card">
+        <div class="card-head-row">
+          <h3>Provisional posture</h3>
+          <button type="button" class="btn ask" data-ask="postures">Walk me through the postures</button>
+        </div>
+        <p class="hint">Chosen only after terrain selection. The agent may recommend one; it does not choose for you.</p>
+        <div class="two-col">
+          <div>
+            <label class="field" for="po-posture">Posture</label>
+            <select id="po-posture">
+              <option value="">Not chosen yet</option>
+              <option value="LEAN_CORE_STUB">Lean-core priority stub</option>
+              <option value="DISCLOSURE_RESERVOIR">Disclosure reservoir</option>
+              <option value="LAYERED_PROVISIONALS">Layered provisionals</option>
+            </select>
+          </div>
+          <div>
+            <label class="field" for="po-approved">Approval</label>
+            <label class="check"><input type="checkbox" id="po-approved"> I approve this posture</label>
+          </div>
+        </div>
+        <label class="field" for="po-rationale">Why</label>
+        <textarea id="po-rationale" rows="2"></textarea>
+        <div class="two-col">
+          <div>
+            <label class="field" for="po-first">Needs the first date</label>
+            <textarea id="po-first" rows="2"></textarea>
+          </div>
+          <div>
+            <label class="field" for="po-withheld">Withheld or staged</label>
+            <textarea id="po-withheld" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="two-col">
+          <div>
+            <label class="field" for="po-constraints">Disclosure and foreign-filing constraints</label>
+            <textarea id="po-constraints" rows="2"></textarea>
+          </div>
+          <div>
+            <label class="field" for="po-trigger">Next filing trigger and target date</label>
+            <input type="text" id="po-trigger">
+          </div>
+        </div>
+        <label class="field" for="po-deadline">Earliest known conversion deadline</label>
+        <input type="text" id="po-deadline" placeholder="e.g. 12 months from the first provisional date">
+      </div>
+    </section>
+
     <!-- ============ REFERENCE LIBRARY ============ -->
     <section class="pane" id="pane-library">
       <div class="pane-head">
@@ -441,7 +588,10 @@
 
       <div class="card lens" data-lens="invention_value">
         <span class="lens-code">IVS</span>
-        <h3>Invention Value Score</h3>
+        <div class="card-head-row">
+          <h3>Invention Value Score</h3>
+          <button type="button" class="btn ask" data-ask="ivs">Assess value now</button>
+        </div>
         <p class="lens-question">Does the terrain you've chosen to protect appear worth pursuing?</p>
         <label class="field">Self-assessed level</label>
         <div class="level-picker" data-bind="level">

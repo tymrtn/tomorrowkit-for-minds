@@ -46,7 +46,21 @@ Three parts share one local matter:
 - **The `tomorrowkit-workspace` command is the bridge.** The agent lists,
   creates, reads, and applies revision-checked patches to the record without
   HTTP or file editing. A stale write is rejected and reconciled, never
-  overwritten.
+  overwritten. Its `next` command tells the agent what the record still lacks
+  and what to ask about; `advance` moves the phase marker only when the record
+  supports it.
+
+## The tab talks back
+
+![The seed portfolio: each mechanism side by side with the inventor's disposition, its route, and buttons that send a message into the chat](docs/images/record-seeds.png)
+
+The inventor never has to fill anything in, but the tab is not passive. Every
+card carries buttons that type a message into the chat in the inventor's own
+voice: run a quick orientation quiz, look for more seeds, explore or accept a
+seed, verify a lead, walk through the three postures, assess value now, or ask
+anything in one line. The agent answers in the conversation and the record
+refreshes behind it. The buttons use the workspace's own chat API on loopback,
+so nothing leaves the Mind.
 
 ## The first five minutes
 
@@ -69,6 +83,10 @@ The record separates what existed by the relevant date from what came later:
 - `priority-safe` inventor material, `later-note` inventor additions,
   `external-reference` public material, `generated` model proposals, and
   `search-lead` or `IDS-candidate` public references still to be reviewed;
+- a seed portfolio: each distinct mechanism with who proposed it, the
+  inventor's disposition, its route, and its closest-art and evidence notes;
+- the provisional posture, chosen and approved by the inventor after terrain
+  selection;
 - a Decision Ledger of the objective, terrain, embodiment, deferral, and
   disclosure choices the inventor confirmed, with their reasons;
 - an Invention Value Score and a Priority Asset Score kept apart, with
@@ -101,7 +119,7 @@ This repo is a bootable snapshot. When a new mind is created from it, the
 The adaptation guide lives in [`template.md`](template.md), the manifest an
 adopting agent reads, with the machine-readable half in
 [`template.toml`](template.toml). Its adaptation list names the things an
-adopter may want to change: the port and the free-text seed portfolio.
+adopter may want to change: the port and where the tab's buttons deliver messages.
 
 To adopt it from an existing mind instead, give that mind the repo URL and
 ask it to use the template.

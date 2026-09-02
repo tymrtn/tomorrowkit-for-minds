@@ -42,7 +42,36 @@ _DECISION_KIND_LABELS: Final[dict[str, str]] = {
     "EMBODIMENT_CHOICE": "Embodiment choice",
     "DEFERRAL": "Deferral",
     "SUGGESTION_DISPOSITION": "Suggestion disposition",
+    "SINGLE_SEED_WAIVER": "Single-seed waiver",
+    "WORKFLOW_RETURN": "Returned to an earlier phase",
     "OTHER": "Other",
+}
+
+_SEED_ORIGIN_LABELS: Final[dict[str, str]] = {
+    "INVENTOR": "Inventor's own",
+    "MODEL": "Model proposal",
+}
+
+_SEED_STATUS_LABELS: Final[dict[str, str]] = {
+    "PROPOSED": "Proposed",
+    "ACCEPTED": "Accepted",
+    "EDITED": "Accepted with edits",
+    "REJECTED": "Rejected",
+    "DEFERRED": "Deferred",
+}
+
+_SEED_ROUTE_LABELS: Final[dict[str, str]] = {
+    "STANDALONE": "Standalone filing",
+    "COMBINE": "Combine with another seed",
+    "LATER_FILING": "Later filing",
+    "DEFER": "Defer",
+    "NO_FILE": "No filing",
+}
+
+_POSTURE_LABELS: Final[dict[str, str]] = {
+    "LEAN_CORE_STUB": "Lean-core priority stub",
+    "DISCLOSURE_RESERVOIR": "Disclosure reservoir",
+    "LAYERED_PROVISIONALS": "Layered provisionals",
 }
 
 _LENS_LEVEL_LABELS: Final[dict[str, str]] = {
@@ -92,6 +121,7 @@ def render_readme_markdown(matter: MatterDocument) -> str:
         "- `invention-map.md` -- the invention map, written out as text",
         "- `reference-library.md` -- every reference entry with its metadata",
         "- `decision-ledger.md` -- the recorded human decisions and rationale",
+        "- `seed-portfolio.md` -- the harvested seeds, their dispositions, and the provisional posture",
         "- `scorecard.md` -- the two provisional-stage lens self-reviews",
         "- `harvest-notes.md` -- notes from the guided invention harvest",
         "",
@@ -326,6 +356,65 @@ def render_scorecard_markdown(matter: MatterDocument) -> str:
 
 
 @pure
+def render_seed_portfolio_markdown(matter: MatterDocument) -> str:
+    lines = [
+        f"# Seed portfolio -- {matter.title}",
+        "",
+        "Every distinct technical seed harvested from the conversation, with the",
+        "inventor's disposition, its route, and the assay notes. Model proposals stay",
+        "labelled as proposals until the inventor acts on them.",
+        "",
+    ]
+    if not matter.seeds:
+        lines.extend(["_No seeds harvested yet._", ""])
+    for seed in matter.seeds:
+        route = _SEED_ROUTE_LABELS[seed.route.value] if seed.route else "Not routed yet"
+        lines.extend(
+            [
+                f"## {seed.label}",
+                "",
+                f"- Origin: {_SEED_ORIGIN_LABELS[seed.origin.value]}",
+                f"- Status: {_SEED_STATUS_LABELS[seed.status.value]}",
+                f"- Route: {route}",
+                "",
+                f"**Mechanism:** {_text_or_placeholder(seed.mechanism)}",
+                "",
+                f"**Closest art:** {_text_or_placeholder(seed.closest_art_note)}",
+                "",
+                f"**Design-arounds:** {_text_or_placeholder(seed.design_around_note)}",
+                "",
+                f"**Evidence:** {_text_or_placeholder(seed.evidence_note)}",
+                "",
+            ]
+        )
+    posture = matter.posture
+    lines.extend(["## Provisional posture", ""])
+    if posture.posture is None:
+        lines.extend(["_No posture chosen yet._", ""])
+        return "\n".join(lines)
+    approval = "approved by the inventor" if posture.approved_by_inventor else "not yet approved by the inventor"
+    lines.extend(
+        [
+            f"- Posture: {_POSTURE_LABELS[posture.posture.value]} ({approval})",
+            "",
+            f"**Why:** {_text_or_placeholder(posture.rationale)}",
+            "",
+            f"**Needs the first date:** {_text_or_placeholder(posture.first_date_material)}",
+            "",
+            f"**Withheld or staged:** {_text_or_placeholder(posture.withheld_material)}",
+            "",
+            f"**Constraints:** {_text_or_placeholder(posture.constraints)}",
+            "",
+            f"**Next trigger:** {_text_or_placeholder(posture.next_trigger)}",
+            "",
+            f"**Earliest conversion deadline:** {_text_or_placeholder(posture.conversion_deadline_text)}",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+@pure
 def render_harvest_markdown(matter: MatterDocument) -> str:
     lines = [
         f"# Harvest notes -- {matter.title}",
@@ -363,6 +452,7 @@ def build_export_zip_bytes(matter: MatterDocument) -> bytes:
             "reference-library.md", render_reference_library_markdown(matter)
         )
         archive.writestr("decision-ledger.md", render_decision_ledger_markdown(matter))
+        archive.writestr("seed-portfolio.md", render_seed_portfolio_markdown(matter))
         archive.writestr("scorecard.md", render_scorecard_markdown(matter))
         archive.writestr("harvest-notes.md", render_harvest_markdown(matter))
     return buffer.getvalue()

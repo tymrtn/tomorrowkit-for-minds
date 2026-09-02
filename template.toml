@@ -10,7 +10,7 @@ slug = "tomorrowkit"
 title = "Tomorrowkit"
 description = "A private, conversational invention workspace: the Mind interviews a solo inventor and keeps a source-aware provisional-patent record beside the chat"
 thumbnail = "template.svg"
-version = "v3"
+version = "v4"
 
 # How this template is DERIVED from the workspace it came from. An
 # update re-runs this recipe rather than diffing two repos, which is what
@@ -45,8 +45,8 @@ summary = "Matter records are plaintext JSON under data/.apps/tomorrowkit/ and f
 resolution = "An adopter working on a sensitive invention confirms the workspace's backup and privacy posture, uses a model account with training opt-outs enabled, and connects only the research tools they choose. Nothing in the app calls an AI provider or an external API."
 
 [[requirements.adaptation]]
-summary = "The seed portfolio and the provisional disclosure posture are recorded as free text (brief.alternatives, brief.open_questions, and Decision Ledger entries) rather than as structured fields, so they cannot be rendered side by side or queried."
-resolution = "An adopter who wants them queryable adds a Seed model (label, mechanism, status, provenance) and a posture field to data_types.py, exposes them through the patch paths in agent_tools.py, and renders them in matter.html."
+summary = "The tab's ask-the-agent buttons post to the workspace UI's chat API on loopback (default http://127.0.0.1:8000, overridable via TOMORROWKIT_CHAT_API) using the chat agent id the bridge stamped on the matter; a matter created by hand in the tab has no owning chat until the agent next updates it."
+resolution = "Nothing to do inside a Mind. Outside one, point TOMORROWKIT_CHAT_API at a stub or leave the buttons unused; the record and export work without it."
 
 [[requirements.adaptation]]
 summary = "The interview and record scoring run on the one agent configured for the Mind. The template does not include the multi-model attack and landscape roles the wider Provisionally Tomorrow Kit uses, and must not be presented as an independent council."

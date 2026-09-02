@@ -33,6 +33,12 @@ class MapNodeId(RandomId):
     PREFIX = "node"
 
 
+class SeedId(RandomId):
+    """Identifier for one invention seed."""
+
+    PREFIX = "seed"
+
+
 class MapEdgeId(RandomId):
     """Unique identifier for an invention map edge."""
 
@@ -150,6 +156,8 @@ class DecisionKind(UpperCaseStrEnum):
     EMBODIMENT_CHOICE = auto()
     DEFERRAL = auto()
     SUGGESTION_DISPOSITION = auto()
+    SINGLE_SEED_WAIVER = auto()
+    WORKFLOW_RETURN = auto()
     OTHER = auto()
 
 
@@ -173,6 +181,96 @@ class MapNodeKind(UpperCaseStrEnum):
     QUESTION = auto()
     ASSUMPTION = auto()
     EVIDENCE = auto()
+
+
+class SeedOrigin(UpperCaseStrEnum):
+    """Who first put a seed on the table."""
+
+    INVENTOR = auto()
+    MODEL = auto()
+
+
+class SeedStatus(UpperCaseStrEnum):
+    """The inventor's disposition of a seed; a seed stays a proposal until they act."""
+
+    PROPOSED = auto()
+    ACCEPTED = auto()
+    EDITED = auto()
+    REJECTED = auto()
+    DEFERRED = auto()
+
+
+class SeedRoute(UpperCaseStrEnum):
+    """Where an accepted seed goes at terrain selection."""
+
+    STANDALONE = auto()
+    COMBINE = auto()
+    LATER_FILING = auto()
+    DEFER = auto()
+    NO_FILE = auto()
+
+
+class ProvisionalPosture(UpperCaseStrEnum):
+    """The disclosure posture the inventor chose for the first filing."""
+
+    LEAN_CORE_STUB = auto()
+    DISCLOSURE_RESERVOIR = auto()
+    LAYERED_PROVISIONALS = auto()
+
+
+class Seed(FrozenModel):
+    """One claimable technical mechanism or seed family harvested from the conversation."""
+
+    seed_id: SeedId = Field(description="Unique identifier")
+    label: str = Field(description="Short name for the seed")
+    mechanism: str = Field(
+        default="", description="The mechanism or control point, in the inventor's words"
+    )
+    origin: SeedOrigin = Field(description="Whether the inventor or the model proposed it")
+    status: SeedStatus = Field(
+        default=SeedStatus.PROPOSED, description="The inventor's disposition so far"
+    )
+    route: SeedRoute | None = Field(
+        default=None, description="Terrain route once the inventor has chosen one"
+    )
+    closest_art_note: str = Field(
+        default="", description="Closest art found or planned, with its uncertainty"
+    )
+    design_around_note: str = Field(
+        default="", description="Likely design-arounds and the differentiating mechanism"
+    )
+    evidence_note: str = Field(
+        default="", description="What has been built, tested, or observed for this seed"
+    )
+    created_at: datetime = Field(description="When the seed entered the record")
+    updated_at: datetime = Field(description="When the seed last changed")
+
+
+class PosturePlan(FrozenModel):
+    """The inventor-approved provisional disclosure posture and what it commits to."""
+
+    posture: ProvisionalPosture | None = Field(
+        default=None, description="Chosen posture; None until the inventor decides"
+    )
+    rationale: str = Field(default="", description="Why this posture")
+    first_date_material: str = Field(
+        default="", description="What must receive the first filing date"
+    )
+    withheld_material: str = Field(
+        default="", description="What stays withheld or staged for a later layer"
+    )
+    constraints: str = Field(
+        default="", description="Public-disclosure and foreign-filing constraints"
+    )
+    next_trigger: str = Field(
+        default="", description="The next filing trigger and its target date"
+    )
+    conversion_deadline_text: str = Field(
+        default="", description="Earliest known conversion deadline, as the inventor knows it"
+    )
+    approved_by_inventor: bool = Field(
+        default=False, description="True only once the inventor has explicitly approved"
+    )
 
 
 class LensLevel(UpperCaseStrEnum):
@@ -480,6 +578,17 @@ class MatterDocument(FrozenModel):
     )
     scorecard: Scorecard = Field(
         default_factory=Scorecard, description="The two provisional-stage lenses"
+    )
+    seeds: tuple[Seed, ...] = Field(
+        default=(), description="The harvested seed portfolio and its dispositions"
+    )
+    posture: PosturePlan = Field(
+        default_factory=PosturePlan,
+        description="The provisional disclosure posture, once chosen",
+    )
+    chat_agent_id: str = Field(
+        default="",
+        description="The Minds chat agent that owns this matter; lets the tab message it",
     )
 
     @model_validator(mode="before")

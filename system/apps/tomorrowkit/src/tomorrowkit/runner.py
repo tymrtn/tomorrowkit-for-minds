@@ -20,7 +20,10 @@ the app also works when addressed directly on its port.
 """
 
 import io
+import json
 import os
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -59,6 +62,34 @@ PORT = int(os.environ.get("TOMORROWKIT_PORT", "8090"))
 
 _ASSETS_DIR = Path(__file__).parent / "assets"
 
+# The workspace UI's own chat API on loopback. POSTing to it types a message
+# into an agent's chat exactly as the chat box does, which is how the tab's
+# buttons steer the conversation. Overridable for a throwaway instance.
+CHAT_API_BASE = os.environ.get("TOMORROWKIT_CHAT_API", "http://127.0.0.1:8000").rstrip("/")
+
+
+def _relay_to_chat(agent_id: str, message: str) -> tuple[int, str]:
+    """Send ``message`` into ``agent_id``'s chat; return the upstream status and detail."""
+    body = json.dumps({"message": message}).encode()
+    request_ = urllib.request.Request(
+        f"{CHAT_API_BASE}/api/agents/{agent_id}/message",
+        data=body,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request_, timeout=15) as response:
+            return response.status, ""
+    except urllib.error.HTTPError as error:
+        raw = error.read().decode(errors="replace")
+        try:
+            detail = json.loads(raw).get("detail", raw)
+        except ValueError:
+            detail = raw
+        return error.code, str(detail) or error.reason
+    except urllib.error.URLError as error:
+        return 502, f"cannot reach the chat interface: {error.reason}"
+
 
 def _parse_matter_id_or_404(raw_matter_id: str) -> MatterId:
     try:
@@ -75,6 +106,10 @@ def _load_matter_or_404(
         return store.load_matter(matter_id)
     except MatterNotFoundError:
         abort(404, description="No such matter")
+
+
+def _json_error(status: int, detail: str) -> Response:
+    return Response(json.dumps({"detail": detail}), status=status, mimetype="application/json")
 
 
 def build_app(store: MatterStoreInterface) -> Flask:
@@ -168,6 +203,27 @@ def build_app(store: MatterStoreInterface) -> Flask:
         except MatterNotFoundError:
             abort(404, description="No such matter")
         return Response(updated.model_dump_json(), mimetype="application/json")
+
+    @app.route("/api/matters/<raw_matter_id>/ask", methods=["POST"])
+    def ask_agent(raw_matter_id: str) -> Response:
+        """Type a message into the chat that owns this matter (the tab's steering buttons)."""
+        matter = _load_matter_or_404(store, raw_matter_id)
+        payload = request.get_json(silent=True)
+        message = payload.get("message") if isinstance(payload, dict) else None
+        if not isinstance(message, str) or not message.strip():
+            abort(400, description="Expected a non-empty message")
+        if not matter.chat_agent_id:
+            return _json_error(
+                409,
+                "No chat owns this matter yet; the agent records its id when it creates or updates the record",
+            )
+        status, detail = _relay_to_chat(matter.chat_agent_id, message.strip())
+        if status != 200:
+            return _json_error(status, detail or f"chat interface answered {status}")
+        return Response(
+            json.dumps({"ok": True, "agent_id": matter.chat_agent_id}),
+            mimetype="application/json",
+        )
 
     @app.route("/api/matters/<raw_matter_id>", methods=["DELETE"])
     def delete_matter(raw_matter_id: str) -> Response:

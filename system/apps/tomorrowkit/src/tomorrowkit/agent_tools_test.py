@@ -5,7 +5,7 @@ import pytest
 from pydantic import ValidationError
 
 from tomorrowkit import agent_tools
-from tomorrowkit.data_types import MapNodeId, MatterIntake, MatterStage
+from tomorrowkit.data_types import MapNodeId, MatterIntake, MatterStage, WorkflowPhase
 from tomorrowkit.factories import create_matter_from_intake
 from tomorrowkit.storage import FileMatterStore
 
@@ -28,7 +28,6 @@ def test_agent_patch_updates_workflow_profile_and_structured_artifacts(
                 "set": {
                     "title": "Pressure-responsive coupler",
                     "stage": "DRAFT_READY",
-                    "workflow_phase": "CORE_MECHANISM",
                     "orientation.idea_state": "WRITTEN_OR_BUILT",
                     "orientation.disclosure_state": "CONFIDENTIAL_ONLY",
                     "orientation.objectives": [
@@ -72,7 +71,6 @@ def test_agent_patch_updates_workflow_profile_and_structured_artifacts(
     updated = store.load_matter(matter.matter_id)
     assert updated.title == "Pressure-responsive coupler"
     assert updated.stage.value == "DRAFT_READY"
-    assert updated.workflow_phase.value == "CORE_MECHANISM"
     assert updated.orientation.idea_state is not None
     assert updated.orientation.idea_state.value == "WRITTEN_OR_BUILT"
     assert [objective.value for objective in updated.orientation.objectives] == [
@@ -298,3 +296,179 @@ def test_agent_patch_accepts_the_revision_exactly_as_show_prints_it(
     agent_tools._apply_patch(str(matter.matter_id), patch_path)
 
     assert store.load_matter(matter.matter_id).title == "Renamed after show"
+
+
+def _seed_matter(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("TOMORROWKIT_DATA_DIR", str(tmp_path))
+    store = FileMatterStore(matters_directory=tmp_path / "matters")
+    matter = create_matter_from_intake(
+        MatterIntake(title="Test invention", stage=MatterStage.EARLY_IDEA)
+    )
+    store.save_matter(matter)
+    return store, matter
+
+
+def _apply(tmp_path: Path, matter_id, patch: dict) -> None:
+    store = FileMatterStore(matters_directory=tmp_path / "matters")
+    current = store.load_matter(matter_id)
+    patch = {"expected_updated_at": current.updated_at.isoformat(), **patch}
+    patch_path = tmp_path / "patch.json"
+    patch_path.write_text(json.dumps(patch))
+    agent_tools._apply_patch(str(matter_id), patch_path)
+
+
+def test_agent_appends_and_updates_seeds(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    store, matter = _seed_matter(tmp_path, monkeypatch)
+
+    _apply(
+        tmp_path,
+        matter.matter_id,
+        {
+            "append_seeds": [
+                {"label": "Pressure-energised lip", "mechanism": "Lip grips harder as pressure rises.", "origin": "INVENTOR"},
+                {"label": "Bleed groove", "mechanism": "Vents the first surge.", "origin": "MODEL"},
+            ]
+        },
+    )
+    seeds = store.load_matter(matter.matter_id).seeds
+    assert [seed.label for seed in seeds] == ["Pressure-energised lip", "Bleed groove"]
+    assert {seed.status.value for seed in seeds} == {"PROPOSED"}
+    assert seeds[0].seed_id != seeds[1].seed_id
+
+    _apply(
+        tmp_path,
+        matter.matter_id,
+        {
+            "update_seeds": [
+                {"seed_id": str(seeds[1].seed_id), "status": "ACCEPTED", "route": "LATER_FILING", "closest_art_note": "No relief-groove art found yet; search incomplete."}
+            ]
+        },
+    )
+    updated = store.load_matter(matter.matter_id).seeds[1]
+    assert updated.status.value == "ACCEPTED"
+    assert updated.route is not None and updated.route.value == "LATER_FILING"
+    assert "search incomplete" in updated.closest_art_note
+    assert updated.updated_at > updated.created_at
+
+    with pytest.raises(ValueError, match="Unknown seed"):
+        _apply(tmp_path, matter.matter_id, {"update_seeds": [{"seed_id": "seed-nope", "status": "REJECTED"}]})
+
+
+def test_agent_appends_map_edges_between_known_nodes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    store, matter = _seed_matter(tmp_path, monkeypatch)
+    _apply(
+        tmp_path,
+        matter.matter_id,
+        {"append_map_nodes": [{"kind": "INPUT", "label": "Line pressure"}, {"kind": "OUTPUT", "label": "Grip force"}]},
+    )
+    nodes = store.load_matter(matter.matter_id).map_nodes
+
+    _apply(
+        tmp_path,
+        matter.matter_id,
+        {"append_map_edges": [{"source_node_id": str(nodes[0].node_id), "target_node_id": str(nodes[1].node_id), "label": "raises"}]},
+    )
+    edges = store.load_matter(matter.matter_id).map_edges
+    assert len(edges) == 1 and edges[0].label == "raises"
+
+    with pytest.raises(ValueError, match="unknown node"):
+        _apply(tmp_path, matter.matter_id, {"append_map_edges": [{"source_node_id": "node-nope", "target_node_id": str(nodes[1].node_id)}]})
+
+
+def test_agent_sets_posture_but_cannot_set_workflow_phase_directly(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    store, matter = _seed_matter(tmp_path, monkeypatch)
+
+    _apply(
+        tmp_path,
+        matter.matter_id,
+        {"set": {"posture.posture": "LEAN_CORE_STUB", "posture.rationale": "Core is settled.", "posture.approved_by_inventor": True}},
+    )
+    posture = store.load_matter(matter.matter_id).posture
+    assert posture.posture is not None and posture.posture.value == "LEAN_CORE_STUB"
+    assert posture.approved_by_inventor is True
+
+    with pytest.raises(ValueError, match="advance"):
+        _apply(tmp_path, matter.matter_id, {"set": {"workflow_phase": "READY_HANDOFF"}})
+
+
+def test_agent_scores_value_any_time_but_priority_only_with_a_candidate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    store, matter = _seed_matter(tmp_path, monkeypatch)
+
+    _apply(tmp_path, matter.matter_id, {"set": {"scorecard.invention_value.level": "DEVELOPING", "scorecard.invention_value.evidence_notes": "Bench test, three cycles."}})
+    assert store.load_matter(matter.matter_id).scorecard.invention_value.level.value == "DEVELOPING"
+
+    with pytest.raises(ValueError, match="provisional candidate"):
+        _apply(tmp_path, matter.matter_id, {"set": {"scorecard.priority_asset.level": "WEAK"}})
+
+    _apply(tmp_path, matter.matter_id, {"set": {"stage": "FILED_PROVISIONAL"}})
+    _apply(tmp_path, matter.matter_id, {"set": {"scorecard.priority_asset.level": "WEAK"}})
+    assert store.load_matter(matter.matter_id).scorecard.priority_asset.level.value == "WEAK"
+
+
+def test_bridge_stamps_the_chat_agent_that_owns_the_matter(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("TOMORROWKIT_DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("MNGR_AGENT_ID", "agent-abc123")
+    intake_path = tmp_path / "intake.json"
+    intake_path.write_text(json.dumps({"title": "Untitled invention", "stage": "EARLY_IDEA"}))
+
+    agent_tools._create_matter(intake_path)
+
+    created = json.loads(capsys.readouterr().out)
+    assert created["chat_agent_id"] == "agent-abc123"
+
+
+def test_next_reports_the_seed_gate_and_advance_honours_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    store, matter = _seed_matter(tmp_path, monkeypatch)
+    store.save_matter(matter.model_copy(update={"workflow_phase": WorkflowPhase.SEED_EXPANSION}))
+    _apply(tmp_path, matter.matter_id, {"append_seeds": [{"label": "Lip", "mechanism": "Grips harder under pressure.", "origin": "INVENTOR", "status": "ACCEPTED"}]})
+
+    capsys.readouterr()
+    agent_tools._next_matter(str(matter.matter_id))
+    report = json.loads(capsys.readouterr().out)
+    assert report["phase"] == "SEED_EXPANSION"
+    assert report["next_phase"] == "SEED_ASSAY"
+    assert report["can_advance"] is False
+    assert any(not gap["met"] and "seed" in gap["condition"].lower() for gap in report["gaps"])
+    assert report["focus"]
+
+    with pytest.raises(ValueError, match="not yet supported"):
+        agent_tools._advance_matter(str(matter.matter_id), "SEED_ASSAY", reason="")
+    assert store.load_matter(matter.matter_id).workflow_phase is WorkflowPhase.SEED_EXPANSION
+
+    _apply(tmp_path, matter.matter_id, {"append_seeds": [{"label": "Bleed groove", "mechanism": "Vents the first surge.", "origin": "MODEL", "status": "EDITED"}]})
+    capsys.readouterr()
+    agent_tools._next_matter(str(matter.matter_id))
+    assert json.loads(capsys.readouterr().out)["can_advance"] is True
+
+    agent_tools._advance_matter(str(matter.matter_id), "SEED_ASSAY", reason="")
+    capsys.readouterr()
+    assert store.load_matter(matter.matter_id).workflow_phase is WorkflowPhase.SEED_ASSAY
+
+
+def test_advance_backward_needs_a_reason_and_records_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    store, matter = _seed_matter(tmp_path, monkeypatch)
+    store.save_matter(matter.model_copy(update={"workflow_phase": WorkflowPhase.SEED_ASSAY}))
+
+    with pytest.raises(ValueError, match="reason"):
+        agent_tools._advance_matter(str(matter.matter_id), "CORE_MECHANISM", reason="")
+
+    agent_tools._advance_matter(str(matter.matter_id), "CORE_MECHANISM", reason="Inventor revealed a second operating cycle.")
+    capsys.readouterr()
+    reloaded = store.load_matter(matter.matter_id)
+    assert reloaded.workflow_phase is WorkflowPhase.CORE_MECHANISM
+    assert reloaded.decisions[-1].kind.value == "WORKFLOW_RETURN"
+    assert "second operating cycle" in reloaded.decisions[-1].rationale

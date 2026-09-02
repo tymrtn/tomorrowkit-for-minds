@@ -36,7 +36,23 @@
     EMBODIMENT_CHOICE: "Embodiment choice",
     DEFERRAL: "Deferral",
     SUGGESTION_DISPOSITION: "Suggestion disposition",
+    SINGLE_SEED_WAIVER: "Single-seed waiver",
+    WORKFLOW_RETURN: "Returned to an earlier phase",
     OTHER: "Other"
+  };
+  var SEED_ORIGIN_LABELS = { INVENTOR: "Inventor's own", MODEL: "Model proposal" };
+  var SEED_STATUS_LABELS = { PROPOSED: "Proposed", ACCEPTED: "Accepted", EDITED: "Accepted with edits", REJECTED: "Rejected", DEFERRED: "Deferred" };
+  var SEED_ROUTE_LABELS = { STANDALONE: "Standalone filing", COMBINE: "Combine", LATER_FILING: "Later filing", DEFER: "Defer", NO_FILE: "No filing" };
+  var POSTURE_LABELS = { LEAN_CORE_STUB: "Lean-core priority stub", DISCLOSURE_RESERVOIR: "Disclosure reservoir", LAYERED_PROVISIONALS: "Layered provisionals" };
+  /* Prepared messages the tab's buttons type into the chat. Plain first-person
+     wording, because they land in the conversation as the inventor's own turn. */
+  var ASK_MESSAGES = {
+    quiz: "Run a short orientation quiz around what you already know about me and this invention, one question at a time, and update the record as I answer.",
+    next: "Look at the Tomorrowkit record and tell me what it still lacks, then ask me the single most useful next question.",
+    seeds: "Look for more distinct technical seeds in what I've told you so far. Present them as proposals, one at a time, and let me accept, edit, reject, or defer each.",
+    assay: "Assay the seeds I've accepted: closest art, likely design-arounds, and what evidence is missing. Record leads in the library as unverified.",
+    postures: "Walk me through the three provisional postures with their real consequences for this invention, then ask which one I want.",
+    ivs: "Assess the Invention Value Score dimensions you can support right now, show the evidence and coverage, and leave the Priority Asset Score unassessed until a provisional candidate exists."
   };
   var NODE_KIND_LABELS = {
     COMPONENT: "Component",
@@ -259,6 +275,9 @@
     $("artifact-map-count").textContent = (doc.map_nodes || []).length + " elements · " + (doc.map_edges || []).length + " connections";
     $("artifact-reference-count").textContent = (doc.references || []).length + " sources in the record";
     $("artifact-decision-count").textContent = (doc.decisions || []).length + " decisions recorded";
+    var seeds = doc.seeds || [];
+    var confirmed = seeds.filter(function (s) { return s.status === "ACCEPTED" || s.status === "EDITED"; }).length;
+    $("artifact-seed-count").textContent = seeds.length + " seeds · " + confirmed + " confirmed";
     renderProgressRail();
   }
 
@@ -309,6 +328,7 @@
     renderReviewFields();
     renderLibrary();
     renderLedger();
+    renderSeeds();
     refreshNodeReferenceOptions();
     renderMap();
   }
@@ -359,6 +379,7 @@
     $("count-map").textContent = String(doc.map_nodes.length || "");
     $("count-library").textContent = String(doc.references.length || "");
     $("count-ledger").textContent = String(doc.decisions.length || "");
+    $("count-seeds").textContent = String((doc.seeds || []).length || "");
   }
 
   /* ---------- pane switching ---------- */
@@ -586,6 +607,7 @@
           (entry.provenance_note ? "<span>" + escapeHtml(entry.provenance_note) + "</span>" : "") +
           '<span class="spacer" style="flex:1;"></span>' +
           '<button class="btn tiny" data-role="edit">Edit</button>' +
+          '<button class="btn tiny ask" data-ask="verify" data-ask-message="' + escapeHtml("Verify the lead \"" + entry.title + "\" against its source, then update its verification state and relevance in the library.") + '">Verify in chat</button>' +
           '<button class="btn tiny" data-role="remove">Remove</button>' +
         "</div>";
       row.querySelector('[data-role="edit"]').addEventListener("click", function () {
@@ -701,6 +723,202 @@
         button.classList.toggle("active", button.dataset.level === lens.level);
       });
     });
+  }
+
+
+  /* ---------- ask the agent (tab -> chat) ---------- */
+
+  function setAskStatus(text, isError) {
+    var el = $("ask-status");
+    el.textContent = text;
+    el.classList.toggle("error", !!isError);
+  }
+
+  function askAgent(message, sourceButton) {
+    if (!message || !message.trim()) { return; }
+    if (!doc.chat_agent_id) {
+      setAskStatus("No chat owns this matter yet. Open it from the conversation first.", true);
+      return;
+    }
+    if (sourceButton) { sourceButton.disabled = true; }
+    setAskStatus("Sending to the chat…", false);
+    fetch("api/matters/" + MATTER_ID + "/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: message.trim() })
+    }).then(function (response) {
+      return response.json().catch(function () { return {}; }).then(function (body) {
+        if (!response.ok) { throw new Error(body.detail || ("chat answered " + response.status)); }
+      });
+    }).then(function () {
+      setAskStatus("Sent. Continue in the conversation.", false);
+    }).catch(function (error) {
+      setAskStatus("Not sent: " + error.message, true);
+    }).finally(function () {
+      if (sourceButton) { sourceButton.disabled = false; }
+    });
+  }
+
+  function initAsk() {
+    document.addEventListener("click", function (event) {
+      var button = event.target.closest("[data-ask]");
+      if (!button) { return; }
+      var message = button.dataset.askMessage || ASK_MESSAGES[button.dataset.ask];
+      askAgent(message, button);
+    });
+    $("ask-send").addEventListener("click", function () {
+      var text = $("ask-text").value;
+      askAgent(text, $("ask-send"));
+      if (text.trim()) { $("ask-text").value = ""; }
+    });
+    $("ask-text").addEventListener("keydown", function (event) {
+      if (event.key === "Enter") { event.preventDefault(); $("ask-send").click(); }
+    });
+  }
+
+  /* ---------- seed portfolio ---------- */
+
+  var seedEditingId = null;
+
+  function seedById(seedId) {
+    return doc.seeds.find(function (s) { return s.seed_id === seedId; });
+  }
+
+  function openSeedEditor(seedId) {
+    seedEditingId = seedId || null;
+    var seed = seedId ? seedById(seedId) : null;
+    $("seed-editor-title").textContent = seed ? "Edit seed" : "New seed";
+    $("se-label").value = seed ? seed.label : "";
+    $("se-origin").value = seed ? seed.origin : "INVENTOR";
+    $("se-mechanism").value = seed ? seed.mechanism : "";
+    $("se-status").value = seed ? seed.status : "PROPOSED";
+    $("se-route").value = seed && seed.route ? seed.route : "";
+    $("se-art").value = seed ? seed.closest_art_note : "";
+    $("se-around").value = seed ? seed.design_around_note : "";
+    $("se-evidence").value = seed ? seed.evidence_note : "";
+    $("se-error").textContent = "";
+    $("seed-editor").hidden = false;
+    $("se-label").focus();
+  }
+
+  function closeSeedEditor() {
+    $("seed-editor").hidden = true;
+    seedEditingId = null;
+  }
+
+  function saveSeed() {
+    var label = $("se-label").value.trim();
+    if (!label) {
+      $("se-error").textContent = "Give the seed a short name first.";
+      return;
+    }
+    var now = new Date().toISOString();
+    var fields = {
+      label: label,
+      origin: $("se-origin").value,
+      mechanism: $("se-mechanism").value,
+      status: $("se-status").value,
+      route: $("se-route").value || null,
+      closest_art_note: $("se-art").value,
+      design_around_note: $("se-around").value,
+      evidence_note: $("se-evidence").value,
+      updated_at: now
+    };
+    if (seedEditingId) {
+      Object.assign(seedById(seedEditingId), fields);
+    } else {
+      fields.seed_id = "seed-" + randomHex32();
+      fields.created_at = now;
+      doc.seeds.push(fields);
+    }
+    closeSeedEditor();
+    renderSeeds();
+    renderSidebar();
+    renderContinue();
+    scheduleSave();
+  }
+
+  function initSeedsPane() {
+    doc.seeds = doc.seeds || [];
+    doc.posture = doc.posture || {};
+    $("seed-add").addEventListener("click", function () { openSeedEditor(null); });
+    $("se-save").addEventListener("click", saveSeed);
+    $("se-cancel").addEventListener("click", closeSeedEditor);
+    var postureFields = [
+      ["po-posture", "posture"], ["po-rationale", "rationale"], ["po-first", "first_date_material"],
+      ["po-withheld", "withheld_material"], ["po-constraints", "constraints"],
+      ["po-trigger", "next_trigger"], ["po-deadline", "conversion_deadline_text"]
+    ];
+    postureFields.forEach(function (pair) {
+      $(pair[0]).addEventListener("input", function () {
+        var value = $(pair[0]).value;
+        doc.posture[pair[1]] = pair[1] === "posture" ? (value || null) : value;
+        scheduleSave();
+      });
+    });
+    $("po-approved").addEventListener("change", function () {
+      doc.posture.approved_by_inventor = $("po-approved").checked;
+      scheduleSave();
+    });
+  }
+
+  function seedChipClass(status) {
+    if (status === "ACCEPTED" || status === "EDITED") { return "chip verified"; }
+    if (status === "REJECTED") { return "chip rel"; }
+    return "chip lead";
+  }
+
+  function renderSeeds() {
+    var grid = $("seed-grid");
+    grid.innerHTML = "";
+    var seeds = doc.seeds || [];
+    if (!seeds.length) {
+      grid.innerHTML = '<div class="empty-note">No seeds yet. Keep describing how the invention works in the chat; Tomorrowkit will propose distinct mechanisms here for you to accept, edit, reject, or defer.</div>';
+    }
+    seeds.forEach(function (seed) {
+      var card = document.createElement("article");
+      card.className = "seed-card";
+      var route = seed.route ? SEED_ROUTE_LABELS[seed.route] : "Not routed yet";
+      card.innerHTML =
+        '<div class="ri-head">' +
+          '<span class="ri-title">' + escapeHtml(seed.label) + "</span>" +
+          '<span class="' + seedChipClass(seed.status) + '">' + SEED_STATUS_LABELS[seed.status] + "</span>" +
+          '<span class="chip">' + SEED_ORIGIN_LABELS[seed.origin] + "</span>" +
+        "</div>" +
+        '<p class="ri-note">' + escapeHtml(seed.mechanism || "Mechanism not written yet.") + "</p>" +
+        '<dl class="seed-facts">' +
+          "<dt>Route</dt><dd>" + escapeHtml(route) + "</dd>" +
+          "<dt>Closest art</dt><dd>" + escapeHtml(seed.closest_art_note || "Not assayed yet.") + "</dd>" +
+          "<dt>Design-arounds</dt><dd>" + escapeHtml(seed.design_around_note || "—") + "</dd>" +
+          "<dt>Evidence</dt><dd>" + escapeHtml(seed.evidence_note || "—") + "</dd>" +
+        "</dl>" +
+        '<div class="ri-meta">' +
+          '<button class="btn tiny ask" data-ask="explore" data-ask-message="' + escapeHtml("Tell me more about the seed \"" + seed.label + "\": what makes it distinct, what the closest art looks like, and what evidence I would need.") + '">Explore in chat</button>' +
+          '<button class="btn tiny ask" data-ask="accept" data-ask-message="' + escapeHtml("I accept the seed \"" + seed.label + "\". Record it as accepted and tell me what that changes.") + '">Accept in chat</button>' +
+          '<span class="spacer" style="flex:1;"></span>' +
+          '<button class="btn tiny" data-role="edit">Edit</button>' +
+          '<button class="btn tiny" data-role="remove">Remove</button>' +
+        "</div>";
+      card.querySelector('[data-role="edit"]').addEventListener("click", function () { openSeedEditor(seed.seed_id); });
+      card.querySelector('[data-role="remove"]').addEventListener("click", function () {
+        if (!window.confirm("Remove this seed from the portfolio?")) { return; }
+        doc.seeds = doc.seeds.filter(function (s) { return s.seed_id !== seed.seed_id; });
+        renderSeeds();
+        renderSidebar();
+        renderContinue();
+        scheduleSave();
+      });
+      grid.appendChild(card);
+    });
+    var posture = doc.posture || {};
+    setControlValue("po-posture", posture.posture || "");
+    setControlValue("po-rationale", posture.rationale || "");
+    setControlValue("po-first", posture.first_date_material || "");
+    setControlValue("po-withheld", posture.withheld_material || "");
+    setControlValue("po-constraints", posture.constraints || "");
+    setControlValue("po-trigger", posture.next_trigger || "");
+    setControlValue("po-deadline", posture.conversion_deadline_text || "");
+    $("po-approved").checked = !!posture.approved_by_inventor;
   }
 
   /* ---------- invention map ---------- */
@@ -1060,6 +1278,9 @@
     initMapPane();
     renderMap();
     initExportPane();
+    initSeedsPane();
+    renderSeeds();
+    initAsk();
     renderContinue();
     $("load-remote-update").addEventListener("click", function () {
       if (!pendingRemoteDoc || isSaving) { return; }

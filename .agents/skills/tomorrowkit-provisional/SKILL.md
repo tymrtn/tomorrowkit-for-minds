@@ -47,7 +47,8 @@ one question. If several matters exist, ask which one to resume.
 If there is no matter, begin the five-category triage quiz below. As soon as the
 first category is answered, create an `Untitled invention` matter with
 `tomorrowkit-workspace create`, apply every orientation answer already supplied,
-set `workflow_phase` to `TRIAGE_QUIZ`, and open it beside the chat:
+move the phase marker with `tomorrowkit-workspace advance <matter_id> TRIAGE_QUIZ`,
+and open it beside the chat:
 
 ```bash
 uv run tomorrowkit-workspace create --input <temporary-intake-json>
@@ -56,8 +57,8 @@ python3 system/scripts/layout.py open tomorrowkit
 
 Do not add a sixth setup question merely to obtain a title or description. Map
 each later quiz answer into the existing matter before asking the next question.
-When all five categories are answered, derive the legacy stage and goal, set
-`workflow_phase` to `SOURCE_LOCK`, and continue directly. The technical
+When all five categories are answered, derive the legacy stage and goal, run
+`tomorrowkit-workspace advance <matter_id> SOURCE_LOCK`, and continue directly. The technical
 interview will replace the placeholder title as soon as the mechanism is
 understood.
 
@@ -224,10 +225,13 @@ market label, score, or generic use of AI.
 
 Present candidate seeds conversationally in a small comparison set. For each
 model-proposed seed, label it as a proposal and ask the inventor to accept,
-edit, reject, or defer it. Record what the inventor understood, selected,
-modified, combined, or adopted. Store the current seed portfolio in the brief's
-alternatives/open-questions fields and store material dispositions in the
-Decision Ledger.
+edit, reject, or defer it. Record every seed the moment it surfaces with
+`append_seeds` (`label`, `mechanism` in the inventor's words, `origin`
+`INVENTOR` or `MODEL`; status defaults to `PROPOSED`) and the inventor's
+disposition with `update_seeds` (`status` `ACCEPTED`, `EDITED`, `REJECTED`, or
+`DEFERRED`). If the inventor says the invention genuinely holds one seed, record
+a Decision Ledger entry of kind `SINGLE_SEED_WAIVER`. The seed portfolio in the
+tab is these records; never stash seeds in the brief's free text.
 
 Do not proceed with only the first thesis merely because it arrived first. The
 gate is multiple inventor-confirmed seeds or an explicit inventor waiver that
@@ -242,14 +246,17 @@ competitor products, and academic/technical terminology.
 
 For each seed, preserve closest-art leads, likely design-arounds, differentiating
 mechanism, missing evidence, search coverage, and uncertainty in the living
-Reference Library. New results enter as unverified leads until reviewed against
+Reference Library, and write the seed's own summary through `update_seeds`
+(`closest_art_note`, `design_around_note`, `evidence_note`). New results enter as unverified leads until reviewed against
 their sources. “No result found” means incomplete search confidence, not
 novelty.
 
 At this stage, assess only available **Invention Value Score (IVS)** dimensions,
-with evidence level and coverage visible. Do not populate **Priority Asset
+with evidence level and coverage visible, through `set` on
+`scorecard.invention_value.level`, `coverage_notes`, `evidence_notes`,
+`missing_prerequisites`, and `reasoning`. Do not populate **Priority Asset
 Score (PAS)** before a complete provisional candidate or filed provisional
-exists. Do not create a **Prosecution Survival Score (PSS)** without an actual
+exists; the bridge refuses `scorecard.priority_asset.*` until then. Do not create a **Prosecution Survival Score (PSS)** without an actual
 non-provisional or international claim set. Never average these lenses into one
 number.
 
@@ -262,10 +269,12 @@ Compare the confirmed seeds as: standalone filing, combine, continuation/later
 filing, defer, or no-file. For each combination or narrowing, explain what is
 gained and what is surrendered. Ask which terrain the inventor wants to stake.
 
-Record an inventor-approved terrain declaration covering the core control
-points, essential combinations, implementation forks, likely design-arounds,
-and the minimum commercially meaningful product or process a rational operator
-would still ship. The gate is the inventor's selection. No provisional drafting
+Record the inventor's route on each confirmed seed with `update_seeds`
+(`route` `STANDALONE`, `COMBINE`, `LATER_FILING`, `DEFER`, or `NO_FILE`) and an
+inventor-approved terrain declaration as a `COMMERCIAL_TERRAIN` decision covering
+the core control points, essential combinations, implementation forks, likely
+design-arounds, and the minimum commercially meaningful product or process a
+rational operator would still ship. The gate is the inventor's selection. No provisional drafting
 or formal figure work begins before it.
 
 ### PROVISIONAL_POSTURE
@@ -287,7 +296,13 @@ The agent may recommend a posture but must not infer or select it. Ask the
 inventor to confirm the posture, what must receive the first date, what remains
 withheld or staged, public-disclosure and foreign-filing constraints, the next-
 filing trigger and target date, and the earliest known conversion deadline.
-Record the decision and rationale. The gate is explicit inventor approval.
+Record it through `set` on `posture.posture` (`LEAN_CORE_STUB`,
+`DISCLOSURE_RESERVOIR`, or `LAYERED_PROVISIONALS`), `posture.rationale`,
+`posture.first_date_material`, `posture.withheld_material`,
+`posture.constraints`, `posture.next_trigger`, and
+`posture.conversion_deadline_text`; set `posture.approved_by_inventor` to true
+only after the inventor says so in their own words. The gate is explicit
+inventor approval.
 
 ### DISCLOSURE_BUILD
 
@@ -328,20 +343,31 @@ consequential action without separate authorization.
 
 ## Per-turn record loop
 
-For every meaningful answer:
+The inventor may talk in any order, by voice, or in a long brain dump. Nothing
+they say is early or out of scope: capture all of it wherever it belongs, then
+let the harness tell you what to ask next. For every meaningful answer:
 
 1. Classify the content as inventor statement, later note, external reference,
    generated proposal, or confirmed human decision.
 2. Run `tomorrowkit-workspace show <matter_id>` again and use its exact
    `updated_at` value.
 3. Apply a revision-checked patch with the relevant brief, known/uncertain,
-   next-action, checkpoint, reference, and decision updates.
+   next-action, checkpoint, reference, decision, seed, map, posture, and
+   scorecard updates.
 4. If the answer materially changes an earlier conclusion, revise the summary
    and record the decision change instead of merely appending a contradiction.
 5. If a write is rejected as stale, reread and reconcile. Never overwrite
    blindly.
-6. Reflect a compact “I captured…” summary when the update is consequential,
-   then ask the single next useful question.
+6. Run `tomorrowkit-workspace next <matter_id>`. Its `focus` names what the
+   record still lacks; its `gaps` say why. When `can_advance` is true and the
+   inventor is ready, run `tomorrowkit-workspace advance <matter_id> <PHASE>`.
+   If `advance` refuses, the record does not yet support that claim: ask about
+   the first unmet gap in plain words rather than arguing with the harness. To
+   move backward when new facts undo an earlier gate, run
+   `advance <matter_id> <PHASE> --reason "<why>"`; the reason is logged.
+7. Reflect a compact “I captured…” summary when the update is consequential,
+   then ask the single next useful question. Never show the inventor a gate, a
+   phase name, or a rule; translate `focus` into one natural question.
 
 Use this patch shape, omitting empty sections:
 
@@ -359,9 +385,14 @@ Use this patch shape, omitting empty sections:
   "append_references": [],
   "append_decisions": [],
   "append_dates": [],
-  "append_map_nodes": []
+  "append_map_nodes": [],
+  "append_map_edges": [{"source_node_id": "node-…", "target_node_id": "node-…", "label": "raises"}],
+  "append_seeds": [{"label": "…", "mechanism": "…", "origin": "INVENTOR"}],
+  "update_seeds": [{"seed_id": "seed-…", "status": "ACCEPTED", "route": "STANDALONE"}]
 }
 ```
+
+`workflow_phase` is not a `set` path; it moves only through `advance`.
 
 Apply it with:
 
@@ -386,7 +417,7 @@ the mechanism easier to understand; the service assigns identity and placement.
 Use the stored checkpoint whose id matches the lowercase workflow phase, such
 as `source_lock`, `objective_lock`, `core_mechanism`, `seed_expansion`,
 `seed_assay`, `terrain_selection`, `provisional_posture`, `disclosure_build`,
-or `attack_repair`. Set `workflow_phase` on every state transition. Welcome,
+or `attack_repair`. Move the phase marker only with `advance`. Welcome,
 triage, and ready/handoff are workflow phases without separate harvest cards.
 
 ## Provenance and human control
@@ -404,6 +435,13 @@ bearing choices, and keep public references, generated analysis, earlier
 inventor source, and later inventor notes distinguishable. Escalate genuine
 multi-human inventorship, ownership, public-disclosure, foreign-filing, or
 deadline-sensitive issues calmly as decision points, not as a wall of warnings.
+
+## Messages that arrive from the tab
+
+The Tomorrowkit tab carries buttons and a small "ask the agent" line. They type
+a message into this chat in the inventor's own voice ("Run a short orientation
+quiz…", "Tell me more about the seed …", "Verify the lead …"). Treat them as
+ordinary inventor turns: do what they ask, update the record, and continue.
 
 ## Human-only gates
 

@@ -295,3 +295,73 @@ def test_hostile_titles_are_escaped_in_rendered_pages(tmp_path: Path) -> None:
     assert b"<img src=x onerror" not in home_page.data
     assert b"&lt;script&gt;alert(1)&lt;/script&gt;" in home_page.data
     assert b"<script>alert(1)</script>" not in matter_page.data
+
+
+def test_ask_relays_the_message_into_the_owning_chat(tmp_path: Path, monkeypatch) -> None:
+    client, store = _build_client(tmp_path)
+    matter = build_sample_matter().model_copy(update={"chat_agent_id": "agent-abc123"})
+    store.save_matter(matter)
+    relayed: list[tuple[str, str]] = []
+
+    def fake_relay(agent_id: str, message: str) -> tuple[int, str]:
+        relayed.append((agent_id, message))
+        return 200, ""
+
+    monkeypatch.setattr("tomorrowkit.runner._relay_to_chat", fake_relay)
+
+    response = client.post(
+        f"/api/matters/{matter.matter_id}/ask",
+        json={"message": "Run a short orientation quiz around what you know about me."},
+    )
+
+    assert response.status_code == 200
+    assert response.get_json() == {"ok": True, "agent_id": "agent-abc123"}
+    assert relayed == [("agent-abc123", "Run a short orientation quiz around what you know about me.")]
+
+
+def test_ask_refuses_when_no_chat_owns_the_matter_or_the_message_is_empty(
+    tmp_path: Path, monkeypatch
+) -> None:
+    client, store = _build_client(tmp_path)
+    matter = build_sample_matter()
+    store.save_matter(matter)
+    monkeypatch.setattr(
+        "tomorrowkit.runner._relay_to_chat",
+        lambda agent_id, message: (_ for _ in ()).throw(AssertionError("must not relay")),
+    )
+
+    no_agent = client.post(f"/api/matters/{matter.matter_id}/ask", json={"message": "hello"})
+    assert no_agent.status_code == 409
+    assert "chat" in no_agent.get_json()["detail"].lower()
+
+    store.save_matter(matter.model_copy(update={"chat_agent_id": "agent-abc123"}))
+    empty = client.post(f"/api/matters/{matter.matter_id}/ask", json={"message": "   "})
+    assert empty.status_code == 400
+
+
+def test_ask_relays_an_upstream_failure_as_is(tmp_path: Path, monkeypatch) -> None:
+    client, store = _build_client(tmp_path)
+    store.save_matter(build_sample_matter().model_copy(update={"chat_agent_id": "agent-abc123"}))
+    monkeypatch.setattr(
+        "tomorrowkit.runner._relay_to_chat",
+        lambda agent_id, message: (503, "Agent is not ready to receive messages yet"),
+    )
+
+    response = client.post("/api/matters/" + str(store.list_matters()[0].matter_id) + "/ask", json={"message": "hi"})
+
+    assert response.status_code == 503
+    assert "not ready" in response.get_json()["detail"]
+
+
+def test_matter_page_carries_the_seed_pane_and_ask_the_agent_actions(tmp_path: Path) -> None:
+    client, store = _build_client(tmp_path)
+    matter = build_sample_matter()
+    store.save_matter(matter)
+
+    response = client.get(f"/matter/{matter.matter_id}")
+
+    assert response.status_code == 200
+    assert b'id="pane-seeds"' in response.data
+    assert b'data-pane="seeds"' in response.data
+    assert b'data-ask="' in response.data
+    assert b'id="count-seeds"' in response.data
