@@ -10,7 +10,7 @@ slug = "tomorrowkit"
 title = "Tomorrowkit"
 description = "A private, conversational invention workspace: the Mind interviews a solo inventor and keeps a source-aware provisional-patent record beside the chat"
 thumbnail = "template.svg"
-version = "v2"
+version = "v3"
 
 # How this template is DERIVED from the workspace it came from. An
 # update re-runs this recipe rather than diffing two repos, which is what
@@ -43,10 +43,6 @@ resolution = "An adopter who needs a different port changes both, or sets TOMORR
 [[requirements.adaptation]]
 summary = "Matter records are plaintext JSON under data/.apps/tomorrowkit/ and follow the workspace's normal persistence and backup behaviour; exported ZIPs contain the same confidential material."
 resolution = "An adopter working on a sensitive invention confirms the workspace's backup and privacy posture, uses a model account with training opt-outs enabled, and connects only the research tools they choose. Nothing in the app calls an AI provider or an external API."
-
-[[requirements.adaptation]]
-summary = "The record service's home page still carries the original five-question orientation form as a secondary path. The conversation is the primary path: the tomorrowkit-provisional skill creates and updates the matter from chat and never sends the user to that form."
-resolution = "An adopter who wants the form gone removes the orientation pane from assets/templates/home.html and assets/static/onboarding.js and keeps the resume card; the /api/orientation route can go with it."
 
 [[requirements.adaptation]]
 summary = "The seed portfolio and the provisional disclosure posture are recorded as free text (brief.alternatives, brief.open_questions, and Decision Ledger entries) rather than as structured fields, so they cannot be rendered side by side or queried."

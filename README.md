@@ -101,8 +101,7 @@ This repo is a bootable snapshot. When a new mind is created from it, the
 The adaptation guide lives in [`template.md`](template.md), the manifest an
 adopting agent reads, with the machine-readable half in
 [`template.toml`](template.toml). Its adaptation list names the things an
-adopter may want to change: the port, the leftover orientation form on the
-service's home page, and the free-text seed portfolio.
+adopter may want to change: the port and the free-text seed portfolio.
 
 To adopt it from an existing mind instead, give that mind the repo URL and
 ask it to use the template.
@@ -135,9 +134,15 @@ uv run pyright system/apps/tomorrowkit/src/tomorrowkit
 ```
 
 On a Mac outside a Mind, two of the workspace's browser dependencies ship
-Linux-only wheels; sync with `--no-install-package pcmflux --no-install-package
-pixelflux` and install `pytest-timeout`, `pyright`, and `inline-snapshot` by
-hand.
+Linux-only wheels. Sync with:
+
+```bash
+uv sync --all-packages --all-groups --no-install-package pcmflux --no-install-package pixelflux
+```
+
+Do not `uv pip install` into this environment: it drops the workspace's
+editable packages from `sys.path` and every `imbue.*` import fails until the
+next `uv sync`.
 
 For service-only work outside a Mind:
 

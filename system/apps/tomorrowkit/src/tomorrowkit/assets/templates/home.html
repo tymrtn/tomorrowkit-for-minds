@@ -29,59 +29,26 @@
   </section>
   {% endif %}
 
-  <section class="orientation-shell" aria-labelledby="orientation-title">
+  <section class="orientation-shell start-in-chat" id="start-in-chat" aria-labelledby="start-title">
     <header class="orientation-intro">
       <div>
-        <p class="eyebrow">Tomorrowkit orientation</p>
-        <h1 id="orientation-title">Start with where the invention is today.</h1>
+        <p class="eyebrow">Tomorrowkit</p>
+        <h1 id="start-title">Start in the conversation.</h1>
         <p class="lede">
-          Five quick choices give Tomorrowkit enough context to ask a useful first
-          question. Each answer explains the patent concept that makes it matter.
+          Tell the Mind about the invention in the chat beside this tab. Tomorrowkit
+          asks one question at a time and builds the record here as you answer.
         </p>
       </div>
       <div class="orientation-mark" aria-hidden="true">
         <span>Private workspace</span>
-        <span>About two minutes</span>
+        <span>Nothing to fill in</span>
       </div>
     </header>
-
-    <div class="quiz-shell" id="orientation-quiz" aria-live="polite">
-      <div class="quiz-progress" aria-label="Orientation progress">
-        <span class="quiz-progress-copy" id="quiz-progress-copy">Question 1 of 5</span>
-        <div class="quiz-progress-track" aria-hidden="true">
-          <span id="quiz-progress-bar"></span>
-        </div>
-      </div>
-
-      <section class="quiz-question" id="quiz-question" tabindex="-1"></section>
-
-      <div class="quiz-actions">
-        <button type="button" class="btn quiet" id="quiz-back" hidden>Back</button>
-        <span class="quiz-selection-note" id="quiz-selection-note"></span>
-        <button type="button" class="btn primary" id="quiz-next" disabled>Continue</button>
-      </div>
-      <p class="form-error" id="quiz-error" role="alert"></p>
-    </div>
-
-    <section class="orientation-result" id="orientation-result" hidden aria-labelledby="result-title" tabindex="-1">
-      <p class="eyebrow">Your starting point</p>
-      <h2 id="result-title"></h2>
-      <p class="result-summary" id="result-summary"></p>
-      <div class="result-grid" id="result-grid"></div>
-      <div class="result-boundary">
-        <strong>What happens next</strong>
-        <p>
-          Tomorrowkit creates a private matter record, reads these choices, and
-          continues in the Mind conversation beside this workspace. It does not
-          file an application or make legal conclusions.
-        </p>
-      </div>
-      <div class="result-actions">
-        <button type="button" class="btn quiet" id="result-back">Review my answers</button>
-        <button type="button" class="btn primary" id="create-workspace">Create my workspace</button>
-      </div>
-      <p class="form-error" id="create-error" role="alert"></p>
-    </section>
+    <ol class="start-steps">
+      <li><strong>Say where the invention stands.</strong> In your head, in notes or a build, in a draft, or already filed.</li>
+      <li><strong>Answer one question at a time.</strong> Each answer updates the brief, the map, the references, and the decisions.</li>
+      <li><strong>Review and correct here.</strong> This tab is the record the conversation builds, never a form you have to complete.</li>
+    </ol>
   </section>
 
   <footer class="orientation-foot">
@@ -92,7 +59,6 @@
   </footer>
 </main>
 
-<script src="static/onboarding.js"></script>
     <script>if (window.parent !== window) window.parent.postMessage({type: "minds-location", path: location.pathname + location.search}, "*");</script>
 </body>
 </html>

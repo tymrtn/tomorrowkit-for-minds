@@ -83,7 +83,7 @@ optional `note`. The orientation paths are
 `orientation.collaboration_style`. Derive `EARLY_IDEA` for an idea in the head,
 `DRAFT_READY` for written/built or draft material, and `FILED_PROVISIONAL` for a
 filed provisional unless the user's facts clearly establish an existing later
-application.
+filing.
 
 If opening the layout fails, continue the conversation and record updates. Say
 briefly that the record tab could not be opened; do not abandon the harvest or
@@ -322,9 +322,9 @@ and an inventor-confirmed next step.
 Show what the record covers, what remains uncertain, which sources are still
 leads, the selected terrain and posture, withheld or later material, important
 dates, and the next human decision. Offer the portable export or continued
-work. Do not call the matter filing-ready, provide a legal conclusion, file an
-application, publish material, spend money, or take an external consequential
-action without separate authorization.
+work. Do not call the matter filing-ready, provide a legal conclusion, file
+with a patent office, publish material, spend money, or take an external
+consequential action without separate authorization.
 
 ## Per-turn record loop
 

@@ -2,7 +2,7 @@
 title: "Tomorrowkit"
 description: "A private, conversational invention workspace: the Mind interviews a solo inventor and keeps a source-aware provisional-patent record beside the chat"
 thumbnail: "template.svg"
-version: v2
+version: v3
 format: v2
 ---
 
@@ -87,7 +87,7 @@ tomorrowkit-workspace` resolve. The agent opens the tab beside the chat with
 
 ## Recipe
 
-This template is version `v2`. It is not a fork of the
+This template is version `v3`. It is not a fork of the
 workspace it came from -- it is DERIVED from it by a recipe: include these
 paths, leave these out, apply these published-version rules. An update re-runs
 the recipe against the current workspace and publishes the result as the next
@@ -128,13 +128,6 @@ Adaptation:
   adopter working on a sensitive invention confirms the workspace's backup and
   privacy posture, uses a model account with training opt-outs enabled, and
   connects only the research tools they choose.
-- **The home page still carries the original orientation form.** The record
-  service's `/` page shows the five-question form as a secondary path. The
-  conversation is the primary path: the skill creates and updates the matter
-  from chat and never sends the user to that form. An adopter who wants the
-  form gone removes the orientation pane from `assets/templates/home.html` and
-  `assets/static/onboarding.js`, keeps the resume card, and can drop the
-  `/api/orientation` route with it.
 - **Seeds and posture are free text.** The seed portfolio and the provisional
   disclosure posture are recorded in `brief.alternatives`,
   `brief.open_questions`, and Decision Ledger entries, so they cannot be
@@ -191,6 +184,7 @@ This is distinct from "Adaptation history" below, which is the ADOPTERS' log.
 
 ### v1 (2026-08-31) -- first publish as a v1 inspiration (`inspiration-tomorrowkit.md`) on the pre-restructure workspace tree; redesigned the next day around the conversational harvest.
 ### v2 (2026-09-02) -- republished in the v2 template format on the current default-workspace-template base: the app moved to `system/apps/tomorrowkit` with its own origin and the location beacon, the agent bridge accepts the revision exactly as `show` prints it, and the README carries real screenshots and an adoption section.
+### v3 (2026-09-02) -- the record service's home page no longer carries the five-question orientation form or its `/api/orientation` route; it shows the resume cards and a start-in-chat panel, so the conversation is the only intake path.
 
 ## Adaptation history
 

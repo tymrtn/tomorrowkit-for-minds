@@ -27,7 +27,7 @@ def test_health_endpoint(tmp_path: Path) -> None:
     assert response.get_json() == {"status": "ok"}
 
 
-def test_home_page_lists_existing_matters(tmp_path: Path) -> None:
+def test_home_page_lists_existing_matters_and_starts_in_chat(tmp_path: Path) -> None:
     client, store = _build_client(tmp_path)
     store.save_matter(build_sample_matter())
 
@@ -35,9 +35,40 @@ def test_home_page_lists_existing_matters(tmp_path: Path) -> None:
 
     assert response.status_code == 200
     assert b"Self-sealing irrigation coupler" in response.data
-    assert b"Start with where the invention is today." in response.data
-    assert b'id="orientation-quiz"' in response.data
-    assert b'id="intake-form"' not in response.data
+    assert b'id="start-in-chat"' in response.data
+    # The conversation is the only intake path: no quiz, no form, no onboarding script.
+    assert b'id="orientation-quiz"' not in response.data
+    assert b"<form" not in response.data
+    assert b"onboarding.js" not in response.data
+
+
+def test_home_page_without_matters_points_to_the_conversation(tmp_path: Path) -> None:
+    client, _ = _build_client(tmp_path)
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert b'id="start-in-chat"' in response.data
+    assert b'class="resume-strip"' not in response.data
+    assert b'id="orientation-quiz"' not in response.data
+
+
+def test_orientation_endpoint_is_gone(tmp_path: Path) -> None:
+    client, store = _build_client(tmp_path)
+
+    response = client.post(
+        "/api/orientation",
+        json={
+            "idea_state": "WRITTEN_OR_BUILT",
+            "disclosure_state": "CONFIDENTIAL_ONLY",
+            "objectives": ["PROTECT_PRODUCT"],
+            "materials_state": "NOTES_OR_SKETCHES",
+            "collaboration_style": "GUIDED_CHOICES",
+        },
+    )
+
+    assert response.status_code == 404
+    assert store.list_matters() == []
 
 
 def test_create_matter_from_intake_payload(tmp_path: Path) -> None:
@@ -75,112 +106,8 @@ def test_create_matter_from_intake_payload(tmp_path: Path) -> None:
     ]
 
 
-def test_create_matter_from_orientation_quiz(tmp_path: Path) -> None:
-    client, store = _build_client(tmp_path)
-
-    response = client.post(
-        "/api/orientation",
-        json={
-            "idea_state": "WRITTEN_OR_BUILT",
-            "disclosure_state": "CONFIDENTIAL_ONLY",
-            "objectives": ["PROTECT_PRODUCT", "LICENSE_OR_PARTNER"],
-            "materials_state": "NOTES_OR_SKETCHES",
-            "collaboration_style": "GUIDED_CHOICES",
-        },
-    )
-
-    assert response.status_code == 201
-    created = response.get_json()
-    stored = store.load_matter(MatterId(created["matter_id"]))
-    assert stored.title == "Untitled invention"
-    assert stored.stage.value == "DRAFT_READY"
-    assert stored.goal == (
-        "Protect a product or service; Prepare for licensing or partnership"
-    )
-    assert stored.next_action == (
-        "Gather the existing invention materials and lock them as the starting source record."
-    )
-    assert stored.workflow_phase.value == "SOURCE_LOCK"
-    assert stored.orientation.idea_state is not None
-    assert stored.orientation.idea_state.value == "WRITTEN_OR_BUILT"
-    assert stored.orientation.collaboration_style is not None
-    assert stored.orientation.collaboration_style.value == "GUIDED_CHOICES"
-    assert [checkpoint.checkpoint_id for checkpoint in stored.harvest] == [
-        "source_lock",
-        "objective_lock",
-        "core_mechanism",
-        "seed_expansion",
-        "seed_assay",
-        "terrain_selection",
-        "provisional_posture",
-        "disclosure_build",
-        "attack_repair",
-    ]
 
 
-def test_orientation_quiz_derives_filed_stage_and_source_lock_action(
-    tmp_path: Path,
-) -> None:
-    client, _ = _build_client(tmp_path)
-
-    response = client.post(
-        "/api/orientation",
-        json={
-            "idea_state": "FILED",
-            "disclosure_state": "PUBLIC_OR_COMMERCIAL",
-            "objectives": ["BANK_OPTIONALITY"],
-            "materials_state": "DRAFT_OR_FILING",
-            "collaboration_style": "BACKGROUND_WITH_GATES",
-        },
-    )
-
-    assert response.status_code == 201
-    created = response.get_json()
-    assert created["stage"] == "FILED_PROVISIONAL"
-    assert created["goal"] == "Preserve future options"
-    assert created["next_action"] == (
-        "Gather the draft or filing and lock the source record before developing it further."
-    )
-
-
-def test_orientation_quiz_rejects_more_than_three_objectives(tmp_path: Path) -> None:
-    client, store = _build_client(tmp_path)
-
-    response = client.post(
-        "/api/orientation",
-        json={
-            "idea_state": "IN_MY_HEAD",
-            "disclosure_state": "PRIVATE",
-            "objectives": [
-                "PROTECT_PRODUCT",
-                "LICENSE_OR_PARTNER",
-                "BANK_OPTIONALITY",
-                "UNDERSTAND_OPTIONS",
-            ],
-            "materials_state": "CONVERSATION_ONLY",
-            "collaboration_style": "INTERVIEW_ME",
-        },
-    )
-
-    assert response.status_code == 400
-    assert store.list_matters() == []
-
-
-def test_orientation_quiz_requires_all_five_answers(tmp_path: Path) -> None:
-    client, store = _build_client(tmp_path)
-
-    response = client.post(
-        "/api/orientation",
-        json={
-            "idea_state": "IN_MY_HEAD",
-            "disclosure_state": "PRIVATE",
-            "objectives": ["UNDERSTAND_OPTIONS"],
-            "materials_state": "CONVERSATION_ONLY",
-        },
-    )
-
-    assert response.status_code == 400
-    assert store.list_matters() == []
 
 
 def test_create_matter_rejects_missing_title(tmp_path: Path) -> None:
@@ -341,13 +268,13 @@ def test_static_assets_and_favicon_are_served_safely(tmp_path: Path) -> None:
     client, _ = _build_client(tmp_path)
 
     static_response = client.get("/static/favicon.svg")
-    onboarding_response = client.get("/static/onboarding.js")
+    script_response = client.get("/static/matter.js")
     favicon_response = client.get("/favicon.ico")
 
     assert static_response.status_code == 200
     assert static_response.mimetype == "image/svg+xml"
-    assert onboarding_response.status_code == 200
-    assert onboarding_response.mimetype in {"text/javascript", "application/javascript"}
+    assert script_response.status_code == 200
+    assert script_response.mimetype in {"text/javascript", "application/javascript"}
     assert favicon_response.status_code == 200
     assert favicon_response.mimetype == "image/svg+xml"
     assert client.get("/static/../templates/home.html").status_code == 404

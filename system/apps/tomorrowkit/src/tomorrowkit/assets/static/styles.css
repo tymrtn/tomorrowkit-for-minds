@@ -650,78 +650,10 @@ label.field {
   color: var(--ink-soft);
   text-transform: uppercase;
 }
-
-.quiz-shell, .orientation-result { padding: 30px 42px 40px; }
-.quiz-progress { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; }
-.quiz-progress-copy { font-family: var(--font-label); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
-.quiz-progress-track { height: 4px; overflow: hidden; background: var(--paper-deep); }
-.quiz-progress-track span { display: block; height: 100%; width: 20%; background: var(--draft); transition: width 180ms ease; }
-.quiz-question { outline: none; }
-.quiz-question:focus, .orientation-result:focus { outline: none; }
-.quiz-question h2, .orientation-result h2 {
-  margin: 8px 0 8px;
-  max-width: 760px;
-  font-size: clamp(26px, 3.5vw, 37px);
-  line-height: 1.18;
-}
-.quiz-question > .eyebrow { margin: 28px 0 0; color: var(--draft); }
-.question-help { max-width: 68ch; margin: 0; color: var(--ink-soft); }
-.quiz-limit { margin: 8px 0 0; font-family: var(--font-label); font-size: 11px; font-weight: 700; color: var(--draft); text-transform: uppercase; letter-spacing: 0.07em; }
-.choice-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 22px; }
-.choice-card {
-  display: grid;
-  grid-template-columns: 22px minmax(0, 1fr);
-  gap: 12px;
-  align-items: start;
-  min-height: 104px;
-  padding: 16px;
-  color: var(--ink);
-  background: var(--paper-raised);
-  border: 1px solid var(--rule);
-  border-radius: 2px;
-  text-align: left;
-  cursor: pointer;
-}
-.choice-card:hover { border-color: var(--ink-soft); background: #f7f2e6; }
-.choice-card.selected { border-color: var(--draft); box-shadow: inset 3px 0 0 var(--draft); background: var(--draft-soft); }
-.choice-card strong { display: block; font-family: var(--font-label); font-size: 14px; letter-spacing: 0.01em; }
-.choice-card small { display: block; margin-top: 4px; color: var(--ink-soft); font-family: var(--font-body); font-size: 14px; line-height: 1.42; }
-.choice-control { width: 18px; height: 18px; margin-top: 2px; border: 1.5px solid var(--rule-strong); border-radius: 50%; background: var(--paper-raised); }
-.choice-card.selected .choice-control { border: 5px solid var(--draft); }
-.quiz-actions, .result-actions { display: flex; gap: 12px; align-items: center; margin-top: 24px; }
-.quiz-selection-note { flex: 1; color: var(--ink-soft); font-family: var(--font-label); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; }
-.quiz-actions .btn.primary { margin-left: auto; }
-.quiz-insight {
-  margin-top: 18px;
-  padding: 15px 18px 16px;
-  border-left: 3px solid var(--draft);
-  background: var(--draft-soft);
-}
-.quiz-insight span {
-  display: block;
-  margin-bottom: 5px;
-  color: var(--draft);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.quiz-insight p { max-width: 78ch; margin: 0; color: var(--ink); font-size: 15px; line-height: 1.55; }
-
-.orientation-result > .eyebrow { color: var(--draft); }
-.result-summary { max-width: 72ch; margin: 0 0 24px; color: var(--ink-soft); font-size: 17px; }
-.result-grid { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--rule-strong); }
-.result-grid article { padding: 16px 18px; border-right: 1px solid var(--rule); }
-.result-grid article:last-child { border-right: 0; }
-.result-grid strong, .result-grid p { display: block; margin: 0; }
-.result-grid strong { font-size: 16px; line-height: 1.35; }
-.result-grid p { margin-top: 5px; color: var(--ink-soft); font-size: 14px; line-height: 1.45; }
-.result-label { display: block; margin-bottom: 7px; color: var(--draft); font-family: var(--font-label); font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
-.result-boundary { margin-top: 20px; padding: 14px 18px; border-left: 3px solid var(--draft); background: var(--paper-deep); }
-.result-boundary strong { font-family: var(--font-label); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
-.result-boundary p { max-width: 76ch; margin: 4px 0 0; font-size: 15px; }
-.result-actions { justify-content: flex-end; }
+.start-steps { list-style: none; counter-reset: step; margin: 0; padding: 36px 42px 30px; padding-top: 0; display: grid; gap: 0.75rem; }
+.start-steps li { counter-increment: step; position: relative; padding: 0.9rem 1rem 0.9rem 3rem; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper-raised, #fffaf0); line-height: 1.45; }
+.start-steps li::before { content: counter(step); position: absolute; left: 1rem; top: 0.85rem; width: 1.5rem; height: 1.5rem; border-radius: 50%; display: grid; place-items: center; font-family: ui-monospace, monospace; font-size: 0.8rem; background: var(--ink, #25211d); color: var(--paper, #f5efe2); }
+.start-steps strong { display: block; margin-bottom: 0.15rem; }
 .orientation-foot { max-width: 74ch; margin: 22px auto 0; color: var(--ink-soft); font-size: 13px; text-align: center; }
 
 /* ---- conversational matter companion ---- */
@@ -820,9 +752,6 @@ label.field {
   .orientation-wrap { width: min(100% - 24px, 1080px); padding-top: 16px; }
   .resume-strip, .orientation-intro, .conversation-location { grid-template-columns: 1fr; }
   .orientation-mark { align-items: flex-start; }
-  .choice-list, .result-grid, .artifact-grid { grid-template-columns: 1fr; }
-  .result-grid article { border-right: 0; border-bottom: 1px solid var(--rule); }
-  .result-grid article:last-child { border-bottom: 0; }
   .companion-grid { grid-template-columns: 1fr; }
   .progress-rail { grid-template-columns: 1fr; gap: 0; }
   .progress-rail li { min-height: 58px; padding: 3px 0 15px 34px; }
@@ -833,11 +762,6 @@ label.field {
 
 @media (max-width: 600px) {
   .orientation-intro, .quiz-shell, .orientation-result { padding-left: 22px; padding-right: 22px; }
-  .choice-card { min-height: 0; }
-  .quiz-actions { flex-wrap: wrap; }
-  .quiz-selection-note { order: 3; flex-basis: 100%; }
-  .result-actions { align-items: stretch; flex-direction: column-reverse; }
-  .result-actions .btn { text-align: center; }
   .sync-notice, .companion-head, .section-heading-row { align-items: stretch; flex-direction: column; }
   .phase-focus { max-width: none; text-align: left; }
   .conversation-card { padding: 22px 20px; }
